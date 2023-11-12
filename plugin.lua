@@ -59,6 +59,13 @@ TAB_MENUS = {                      -- tab names for different SV menus
     "Place Notes",
     "Edit Notes"
 }
+PLACE_TOOLS = {
+    "None"
+}
+EDIT_TOOLS = {
+    "Shift Notes Left/Right",
+    "Shift Notes Up/Down"
+}
 
 ---------------------------------------------------------------------------------------------------
 -- Plugin Appearance, Styles and Colors -----------------------------------------------------------
@@ -554,10 +561,11 @@ end
 -- Creates the plugin window
 function draw()
     local globalVars = {
+        placeToolIndex = 1,
+        editToolIndex = 1,
         colorThemeIndex = 1,
         styleThemeIndex = 1,
-        rgbPeriod = 30,
-        debugText = "debuggy capybara"
+        rgbPeriod = 60
     }
     getVariables("globalVars", globalVars)
     setPluginAppearance(globalVars)
@@ -605,6 +613,9 @@ function listShortcuts()
     if not imgui.CollapsingHeader("Key Shortcuts") then return end
     local indentWidth = -6
     imgui.Indent(indentWidth)
+    addSeparator()
+    imgui.BulletText("T = activate the big button doing stuff")
+    toolTip("Use this for a quick workflow")
     addPadding()
     imgui.BulletText("Ctrl + Shift + Tab = center plugin window")
     toolTip("Useful if the plugin begins or ends up offscreen")
@@ -647,13 +658,64 @@ end
 -- Parameters
 --    globalVars : list of variables used globally across all menus [Table]
 function placeNotesTab(globalVars)
-    imgui.Text(globalVars.debugText)
+    choosePlaceTool(globalVars)
 end
 -- Creates the "Edit Notes" tab
 -- Parameters
 --    globalVars : list of variables used globally across all menus [Table]
 function editNotesTab(globalVars)
-    imgui.Text(globalVars.debugText)
+    chooseEditTool(globalVars)
+    addSeparator()
+    local toolName = EDIT_TOOLS[globalVars.editToolIndex]
+    if toolName == "Shift Notes Left/Right" then shiftLeftRightMenu() end
+    if toolName == "Shift Notes Up/Down"    then shiftUpDownMenu() end
+end
+
+--------------------------------------------------------------------------------------------- Menus
+
+-- Creates the menu for shifting notes horizontally
+function shiftLeftRightMenu()
+    local menuVars = {
+        rightRadio = false
+    }
+    getVariables("shiftLeftRightMenu", menuVars)
+    
+    imgui.AlignTextToFramePadding()
+    imgui.Text("Shift notes one lane")
+    imgui.SameLine(0, SAMELINE_SPACING)
+    if imgui.RadioButton("Left", not menuVars.rightRadio) then menuVars.rightRadio = false end
+    imgui.SameLine(0, RADIO_BUTTON_SPACING)
+    if imgui.RadioButton("Right", menuVars.rightRadio) then menuVars.rightRadio = true end
+    saveVariables("shiftLeftRightMenu", menuVars)
+    
+    addSeparator()
+    local enoughtNotesSelected = checkEnoughSelectedNotes(1)
+    if not enoughtNotesSelected then imgui.Text("Select 1 or more notes") return end
+    
+    if menuVars.rightRadio then
+        button("Shift selected notes right", ACTION_BUTTON_SIZE, shiftNotesRight, nil, nil)
+    else
+        button("Shift selected notes left", ACTION_BUTTON_SIZE, shiftNotesLeft, nil, nil)
+    end
+end
+-- Creates the menu for shifting notes vertically
+function shiftUpDownMenu()
+    local menuVars = {
+        msToMove = 1
+    }
+    getVariables("shiftUpDownMenu", menuVars)
+    _, menuVars.msToMove = imgui.InputInt("Milliseconds", menuVars.msToMove, 1, 1)
+    saveVariables("shiftUpDownMenu", menuVars)
+    
+    addSeparator()
+    local enoughtNotesSelected = checkEnoughSelectedNotes(1)
+    if not enoughtNotesSelected then imgui.Text("Select 1 or more notes") return end
+    
+    local buttonText = "Shift selected notes by "
+    if menuVars.msToMove > 0 then buttonText = buttonText.."+" end
+    buttonText = buttonText..menuVars.msToMove.." ms"
+    if menuVars.msToMove == 0 then buttonText = buttonText.." :jerry:" end
+    button(buttonText, ACTION_BUTTON_SIZE, shiftNotesVertically, nil, menuVars)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -680,6 +742,32 @@ function round(number, decimalPlaces)
     local multiplier = 10 ^ decimalPlaces
     return math.floor(number * multiplier + 0.5) / multiplier
 end
+-- Creates a button that can also be activated when 'T' is pressed
+-- Parameters
+--    text       : text on the button [String]
+--    size       : dimensions of the button [Table: {width, height}]
+--    func       : function to execute once button is pressed [Function]
+--    globalVars : list of variables used globally across all menus [Table]
+--    menuVars   : list of variables used for the current menu [Table]
+function button(text, size, func, globalVars, menuVars)
+    if not (imgui.Button(text, size) or utils.IsKeyPressed(keys.T)) then return end
+    if globalVars and menuVars then func(globalVars, menuVars) return end
+    if globalVars then func(globalVars) return end
+    if menuVars then func(menuVars) return end
+    func()
+end
+-- Checks to see if enough notes are selected
+-- Returns whether or not there are enough notes [Boolean]
+-- Parameters
+--    minimumNotes : minimum number of notes needed to select [Int]
+function checkEnoughSelectedNotes(minimumNotes)
+    local selectedNotes = state.SelectedHitObjects
+    local numSelectedNotes = #selectedNotes
+    if numSelectedNotes == 0 then return false end
+    if numSelectedNotes > map.GetKeyCount() then return true end
+    if minimumNotes == 1 then return true end
+    return selectedNotes[1].StartTime ~= selectedNotes[numSelectedNotes].StartTime
+end
 
 ---------------------------------------------------------------------------------------------------
 -- Choose Functions (Sorted Alphabetically) -------------------------------------------------------
@@ -699,6 +787,28 @@ function chooseColorTheme(globalVars)
     if not isRGBColorTheme then return end
     chooseRGBPeriod(globalVars)
 end
+-- Lets you choose which edit tool to use
+-- Parameters
+--    globalVars : list of variables used globally across all menus [Table]
+function chooseEditTool(globalVars)
+    imgui.AlignTextToFramePadding()
+    imgui.Text("Current Tool:")
+    imgui.SameLine(0, SAMELINE_SPACING)
+    local comboIndex =  globalVars.editToolIndex - 1
+    _, comboIndex = imgui.Combo("##edittool", comboIndex, EDIT_TOOLS, #EDIT_TOOLS)
+    globalVars.editToolIndex = comboIndex + 1
+end
+-- Lets you choose which place tool to use
+-- Parameters
+--    globalVars : list of variables used globally across all menus [Table]
+function choosePlaceTool(globalVars)
+    imgui.AlignTextToFramePadding()
+    imgui.Text("Current Tool:")
+    imgui.SameLine(0, SAMELINE_SPACING)
+    local comboIndex =  globalVars.placeToolIndex - 1
+    _, comboIndex = imgui.Combo("##placetool", comboIndex, PLACE_TOOLS, #PLACE_TOOLS)
+    globalVars.placeToolIndex = comboIndex + 1
+end
 -- Lets you choose the length in seconds of one RGB color cycle
 -- Parameters
 --    globalVars : list of variables used globally across all menus [Table]
@@ -715,4 +825,58 @@ function chooseStyleTheme(globalVars)
     local comboIndex = globalVars.styleThemeIndex - 1
     _, comboIndex = imgui.Combo("Style Theme", comboIndex, STYLE_THEMES, #STYLE_THEMES)
     globalVars.styleThemeIndex = comboIndex + 1
+end
+
+---------------------------------------------------------------------------------------------------
+-- Do-er Functions --------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+
+-- Shift notes left one lane
+function shiftNotesLeft()
+    shiftNotesHorizontally(-1)
+end
+-- Shift notes right one lane
+function shiftNotesRight()
+    shiftNotesHorizontally(1)
+end
+-- Shifts notes horizontally across lane(s)
+function shiftNotesHorizontally(laneShift)
+    local notesToRemove = state.SelectedHitObjects
+    local notesToAdd = {}
+    local keyMode = map.GetKeyCount()
+    for _, note in pairs(notesToRemove) do
+        local newLane = ((note.Lane + laneShift - 1) % keyMode) + 1
+        table.insert(notesToAdd, utils.CreateHitObject(note.StartTime, newLane, note.EndTime,
+                                                       note.HitSound, note.EditorLayer))
+    end
+    removeAndAddNotes(notesToRemove, notesToAdd)
+end
+-- Shifts notes down or up by a specified amount
+-- Parameters
+--    menuVars : list of variables used for the "Shift Notes Up/Down" menu [Table]
+function shiftNotesVertically(menuVars)
+    local msToMove = menuVars.msToMove
+    if msToMove == 0 then return end
+    local notesToRemove = state.SelectedHitObjects
+    local notesToAdd = {}
+    for _, note in pairs(notesToRemove) do
+        local newStartTime = note.StartTime + msToMove
+        local newEndTime = note.EndTime
+        if note.EndTime ~= 0 then newEndTime = note.EndTime + msToMove end
+        table.insert(notesToAdd, utils.CreateHitObject(newStartTime, note.Lane, newEndTime,
+                                                       note.HitSound, note.EditorLayer))
+    end
+    removeAndAddNotes(notesToRemove, notesToAdd)
+end
+-- Removes and adds the given notes
+-- Parameters
+--    notesToRemove : list of notes to remove [Table]
+--    notesToAdd    : list of notes to add [Table]
+function removeAndAddNotes(notesToRemove, notesToAdd)
+    local editorActions = {
+        utils.CreateEditorAction(action_type.RemoveHitObjectBatch, notesToRemove),
+        utils.CreateEditorAction(action_type.PlaceHitObjectBatch, notesToAdd)
+    }
+    actions.PerformBatch(editorActions)
+    actions.SetHitObjectSelection(notesToAdd)
 end
