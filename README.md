@@ -1,11 +1,13 @@
 # VanillaChinchilla
 The Ultimate Quaver plugin for mapping
 
-## What is this plugin?
-This is an editor plugin for Quaver, the ultimate community-driven and open-source competitive rhythm game.
-The plugin provides various tools to place and edit regular notes and long notes in a variety of ways.
+> "The ultimate community-driven and open-source competitive SV plugin"
 
-The plugin is still a work in progress, but here's what the plugin can do so far:
+This is a plugin for [Quaver](https://github.com/Quaver), 
+the ultimate community-driven and open-source competitive rhythm game.
+The plugin provides various tools to place and edit notes in a variety of ways.
+
+The plugin is still a work in progress, but here's what it can do so far:
 
 ### Edit Notes
 - Adjust LN Lengths
