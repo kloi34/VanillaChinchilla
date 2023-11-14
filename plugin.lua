@@ -1,4 +1,4 @@
--- VanillaChinchilla v0.0 Beta (11 November 2023)
+-- VanillaChinchilla v0.0 (13 November 2023)
 -- by kloi34
 
 ---------------------------------------------------------------------------------------------------
@@ -27,10 +27,11 @@ ACTION_BUTTON_SIZE = {             -- dimensions of the button that does importa
     1.6 * DEFAULT_WIDGET_WIDTH - 1,
     1.6 * DEFAULT_WIDGET_HEIGHT
 }
-SECONDARY_BUTTON_SIZE = {          -- dimensions of a button that does less important things
-    0.3 * DEFAULT_WIDGET_WIDTH,
+HALF_BUTTON_SIZE = {               -- dimensions of a button that does less important things
+    0.8 * DEFAULT_WIDGET_WIDTH - 2.5,
     DEFAULT_WIDGET_HEIGHT - 2
 }
+LANE_BUTTON_SIZE = {30, 30}
 
 --------------------------------------------------------------------------------------------- Other
 
@@ -44,9 +45,9 @@ STYLE_THEMES = {                   -- available style/appearance themes for the 
     "Boxed + Border"
 }
 COLOR_THEMES = {                   -- available color themes for the plugin
-    "Chocolate",
-    "Cookie Dough",
-    "Vanilla",
+    "Strawberry",
+    "Amethyst",
+    "Tree",
     "Incognito",
     "Incognito + RGB",
     "Glass",
@@ -55,16 +56,20 @@ COLOR_THEMES = {                   -- available color themes for the plugin
 }
 
 TAB_MENUS = {                      -- tab names for different SV menus
-    "Settings + Info",
+    " Info",
     "Place Notes",
-    "Edit Notes"
+    "Edit Notes",
+    "Extras"
 }
-PLACE_TOOLS = {
+PLACE_TOOLS = {                    -- available tools to place notes with
     "None"
 }
-EDIT_TOOLS = {
+EDIT_TOOLS = {                     -- available tools to edit notes with
+    "Adjust LN Lengths",
     "Shift Notes Left/Right",
-    "Shift Notes Up/Down"
+    "Shift Notes Up/Down",
+    "Flip Notes Vertically",
+    "Switch Note Lanes"
 }
 
 ---------------------------------------------------------------------------------------------------
@@ -87,7 +92,8 @@ function getCurrentRGBColors(rgbPeriod)
     local currentTime = imgui.GetTime()
     local percentIntoCycle = (currentTime % rgbPeriod) / rgbPeriod
     local stageNumberIntoCycle = math.floor(percentIntoCycle * 6)
-    local percentIntoStage = clampToInterval(percentIntoCycle * 6 - stageNumberIntoCycle, 0, 1)
+    local percentIntoStage = percentIntoCycle * 6 - stageNumberIntoCycle
+    percentIntoStage = clampToInterval(percentIntoStage, 0, 1)
     local red
     local green
     local blue
@@ -167,38 +173,7 @@ end
 --    globalVars : list of variables used globally across all menus [Table]
 --    colorTheme : name of the target color theme [String]
 function setPluginAppearanceColors(globalVars, colorTheme)
-    if colorTheme == "Chocolate" then
-        imgui.PushStyleColor( imgui_col.WindowBg,               { 0.00, 0.00, 0.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Border,                 { 0.81, 0.88, 1.00, 0.30 } )
-        imgui.PushStyleColor( imgui_col.FrameBg,                { 0.14, 0.24, 0.28, 1.00 } )
-        imgui.PushStyleColor( imgui_col.FrameBgHovered,         { 0.24, 0.34, 0.38, 1.00 } )
-        imgui.PushStyleColor( imgui_col.FrameBgActive,          { 0.29, 0.39, 0.43, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TitleBg,                { 0.41, 0.48, 0.65, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TitleBgActive,          { 0.51, 0.58, 0.75, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       { 0.51, 0.58, 0.75, 0.50 } )
-        imgui.PushStyleColor( imgui_col.CheckMark,              { 0.81, 0.88, 1.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.SliderGrab,             { 0.56, 0.63, 0.75, 1.00 } )
-        imgui.PushStyleColor( imgui_col.SliderGrabActive,       { 0.61, 0.68, 0.80, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Button,                 { 0.31, 0.38, 0.50, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ButtonHovered,          { 0.41, 0.48, 0.60, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ButtonActive,           { 0.51, 0.58, 0.70, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Tab,                    { 0.31, 0.38, 0.50, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TabHovered,             { 0.51, 0.58, 0.75, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TabActive,              { 0.51, 0.58, 0.75, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Header,                 { 0.81, 0.88, 1.00, 0.40 } )
-        imgui.PushStyleColor( imgui_col.HeaderHovered,          { 0.81, 0.88, 1.00, 0.50 } )
-        imgui.PushStyleColor( imgui_col.HeaderActive,           { 0.81, 0.88, 1.00, 0.54 } )
-        imgui.PushStyleColor( imgui_col.Separator,              { 0.81, 0.88, 1.00, 0.30 } )
-        imgui.PushStyleColor( imgui_col.Text,                   { 1.00, 1.00, 1.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TextSelectedBg,         { 0.81, 0.88, 1.00, 0.40 } )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrab,          { 0.31, 0.38, 0.50, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   { 0.41, 0.48, 0.60, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    { 0.51, 0.58, 0.70, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotLines,              { 0.61, 0.61, 0.61, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotLinesHovered,       { 1.00, 0.43, 0.35, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotHistogram,          { 0.90, 0.70, 0.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   { 1.00, 0.60, 0.00, 1.00 } )
-    elseif colorTheme == "Cookie Dough" then
+    if colorTheme == "Strawberry" then
         imgui.PushStyleColor( imgui_col.WindowBg,               { 0.00, 0.00, 0.00, 1.00 } )
         imgui.PushStyleColor( imgui_col.Border,                 { 1.00, 0.81, 0.88, 0.30 } )
         imgui.PushStyleColor( imgui_col.FrameBg,                { 0.28, 0.14, 0.24, 1.00 } )
@@ -229,37 +204,68 @@ function setPluginAppearanceColors(globalVars, colorTheme)
         imgui.PushStyleColor( imgui_col.PlotLinesHovered,       { 1.00, 0.43, 0.35, 1.00 } )
         imgui.PushStyleColor( imgui_col.PlotHistogram,          { 0.90, 0.70, 0.00, 1.00 } )
         imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   { 1.00, 0.60, 0.00, 1.00 } )
-    elseif colorTheme == "Vanilla" then
-        imgui.PushStyleColor( imgui_col.WindowBg,               { 0.00, 0.00, 0.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Border,                 { 1.00, 0.81, 0.88, 0.30 } )
-        imgui.PushStyleColor( imgui_col.FrameBg,                { 0.28, 0.14, 0.24, 1.00 } )
-        imgui.PushStyleColor( imgui_col.FrameBgHovered,         { 0.38, 0.24, 0.34, 1.00 } )
-        imgui.PushStyleColor( imgui_col.FrameBgActive,          { 0.43, 0.29, 0.39, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TitleBg,                { 0.65, 0.41, 0.48, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TitleBgActive,          { 0.75, 0.51, 0.58, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       { 0.75, 0.51, 0.58, 0.50 } )
-        imgui.PushStyleColor( imgui_col.CheckMark,              { 1.00, 0.81, 0.88, 1.00 } )
-        imgui.PushStyleColor( imgui_col.SliderGrab,             { 0.75, 0.56, 0.63, 1.00 } )
-        imgui.PushStyleColor( imgui_col.SliderGrabActive,       { 0.80, 0.61, 0.68, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Button,                 { 0.50, 0.31, 0.38, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ButtonHovered,          { 0.60, 0.41, 0.48, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ButtonActive,           { 0.70, 0.51, 0.58, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Tab,                    { 0.50, 0.31, 0.38, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TabHovered,             { 0.75, 0.51, 0.58, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TabActive,              { 0.75, 0.51, 0.58, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Header,                 { 1.00, 0.81, 0.88, 0.40 } )
-        imgui.PushStyleColor( imgui_col.HeaderHovered,          { 1.00, 0.81, 0.88, 0.50 } )
-        imgui.PushStyleColor( imgui_col.HeaderActive,           { 1.00, 0.81, 0.88, 0.54 } )
-        imgui.PushStyleColor( imgui_col.Separator,              { 1.00, 0.81, 0.88, 0.30 } )
+    elseif colorTheme == "Amethyst" then
+        imgui.PushStyleColor( imgui_col.WindowBg,               { 0.16, 0.00, 0.20, 1.00 } )
+        imgui.PushStyleColor( imgui_col.Border,                 { 0.90, 0.00, 0.81, 0.30 } )
+        imgui.PushStyleColor( imgui_col.FrameBg,                { 0.40, 0.20, 0.40, 1.00 } )
+        imgui.PushStyleColor( imgui_col.FrameBgHovered,         { 0.50, 0.30, 0.50, 1.00 } )
+        imgui.PushStyleColor( imgui_col.FrameBgActive,          { 0.55, 0.35, 0.55, 1.00 } )
+        imgui.PushStyleColor( imgui_col.TitleBg,                { 0.31, 0.11, 0.35, 1.00 } )
+        imgui.PushStyleColor( imgui_col.TitleBgActive,          { 0.41, 0.21, 0.45, 1.00 } )
+        imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       { 0.41, 0.21, 0.45, 0.50 } )
+        imgui.PushStyleColor( imgui_col.CheckMark,              { 1.00, 0.80, 1.00, 1.00 } )
+        imgui.PushStyleColor( imgui_col.SliderGrab,             { 0.95, 0.75, 0.95, 1.00 } )
+        imgui.PushStyleColor( imgui_col.SliderGrabActive,       { 1.00, 0.80, 1.00, 1.00 } )
+        imgui.PushStyleColor( imgui_col.Button,                 { 0.60, 0.40, 0.60, 1.00 } )
+        imgui.PushStyleColor( imgui_col.ButtonHovered,          { 0.70, 0.50, 0.70, 1.00 } )
+        imgui.PushStyleColor( imgui_col.ButtonActive,           { 0.80, 0.60, 0.80, 1.00 } )
+        imgui.PushStyleColor( imgui_col.Tab,                    { 0.50, 0.30, 0.50, 1.00 } )
+        imgui.PushStyleColor( imgui_col.TabHovered,             { 0.70, 0.50, 0.70, 1.00 } )
+        imgui.PushStyleColor( imgui_col.TabActive,              { 0.70, 0.50, 0.70, 1.00 } )
+        imgui.PushStyleColor( imgui_col.Header,                 { 1.00, 0.80, 1.00, 0.40 } )
+        imgui.PushStyleColor( imgui_col.HeaderHovered,          { 1.00, 0.80, 1.00, 0.50 } )
+        imgui.PushStyleColor( imgui_col.HeaderActive,           { 1.00, 0.80, 1.00, 0.54 } )
+        imgui.PushStyleColor( imgui_col.Separator,              { 1.00, 0.80, 1.00, 0.30 } )
         imgui.PushStyleColor( imgui_col.Text,                   { 1.00, 1.00, 1.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TextSelectedBg,         { 1.00, 0.81, 0.88, 0.40 } )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrab,          { 0.50, 0.31, 0.38, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   { 0.60, 0.41, 0.48, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    { 0.70, 0.51, 0.58, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotLines,              { 0.61, 0.61, 0.61, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotLinesHovered,       { 1.00, 0.43, 0.35, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotHistogram,          { 0.90, 0.70, 0.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   { 1.00, 0.60, 0.00, 1.00 } )
+        imgui.PushStyleColor( imgui_col.TextSelectedBg,         { 1.00, 0.80, 1.00, 0.40 } )
+        imgui.PushStyleColor( imgui_col.ScrollbarGrab,          { 0.60, 0.40, 0.60, 1.00 } )
+        imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   { 0.70, 0.50, 0.70, 1.00 } )
+        imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    { 0.80, 0.60, 0.80, 1.00 } )
+        imgui.PushStyleColor( imgui_col.PlotLines,              { 1.00, 0.80, 1.00, 1.00 } )
+        imgui.PushStyleColor( imgui_col.PlotLinesHovered,       { 1.00, 0.70, 0.30, 1.00 } )
+        imgui.PushStyleColor( imgui_col.PlotHistogram,          { 1.00, 0.80, 1.00, 1.00 } )
+        imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   { 1.00, 0.70, 0.30, 1.00 } )
+    elseif colorTheme == "Tree" then
+        imgui.PushStyleColor( imgui_col.WindowBg,               { 0.20, 0.16, 0.00, 1.00 } )
+        imgui.PushStyleColor( imgui_col.Border,                 { 0.81, 0.90, 0.00, 0.30 } )
+        imgui.PushStyleColor( imgui_col.FrameBg,                { 0.40, 0.40, 0.20, 1.00 } )
+        imgui.PushStyleColor( imgui_col.FrameBgHovered,         { 0.50, 0.50, 0.30, 1.00 } )
+        imgui.PushStyleColor( imgui_col.FrameBgActive,          { 0.55, 0.55, 0.35, 1.00 } )
+        imgui.PushStyleColor( imgui_col.TitleBg,                { 0.35, 0.31, 0.11, 1.00 } )
+        imgui.PushStyleColor( imgui_col.TitleBgActive,          { 0.45, 0.41, 0.21, 1.00 } )
+        imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       { 0.45, 0.41, 0.21, 0.50 } )
+        imgui.PushStyleColor( imgui_col.CheckMark,              { 1.00, 1.00, 0.80, 1.00 } )
+        imgui.PushStyleColor( imgui_col.SliderGrab,             { 0.95, 0.95, 0.75, 1.00 } )
+        imgui.PushStyleColor( imgui_col.SliderGrabActive,       { 1.00, 1.00, 0.80, 1.00 } )
+        imgui.PushStyleColor( imgui_col.Button,                 { 0.60, 0.60, 0.40, 1.00 } )
+        imgui.PushStyleColor( imgui_col.ButtonHovered,          { 0.70, 0.70, 0.50, 1.00 } )
+        imgui.PushStyleColor( imgui_col.ButtonActive,           { 0.80, 0.80, 0.60, 1.00 } )
+        imgui.PushStyleColor( imgui_col.Tab,                    { 0.50, 0.50, 0.30, 1.00 } )
+        imgui.PushStyleColor( imgui_col.TabHovered,             { 0.70, 0.70, 0.50, 1.00 } )
+        imgui.PushStyleColor( imgui_col.TabActive,              { 0.70, 0.70, 0.50, 1.00 } )
+        imgui.PushStyleColor( imgui_col.Header,                 { 1.00, 1.00, 0.80, 0.40 } )
+        imgui.PushStyleColor( imgui_col.HeaderHovered,          { 1.00, 1.00, 0.80, 0.50 } )
+        imgui.PushStyleColor( imgui_col.HeaderActive,           { 1.00, 1.00, 0.80, 0.54 } )
+        imgui.PushStyleColor( imgui_col.Separator,              { 1.00, 1.00, 0.80, 0.30 } )
+        imgui.PushStyleColor( imgui_col.Text,                   { 1.00, 1.00, 1.00, 1.00 } )
+        imgui.PushStyleColor( imgui_col.TextSelectedBg,         { 1.00, 1.00, 0.80, 0.40 } )
+        imgui.PushStyleColor( imgui_col.ScrollbarGrab,          { 0.60, 0.60, 0.40, 1.00 } )
+        imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   { 0.70, 0.70, 0.50, 1.00 } )
+        imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    { 0.80, 0.80, 0.60, 1.00 } )
+        imgui.PushStyleColor( imgui_col.PlotLines,              { 1.00, 1.00, 0.80, 1.00 } )
+        imgui.PushStyleColor( imgui_col.PlotLinesHovered,       { 0.30, 1.00, 0.70, 1.00 } )
+        imgui.PushStyleColor( imgui_col.PlotHistogram,          { 1.00, 1.00, 0.80, 1.00 } )
+        imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   { 0.30, 1.00, 0.70, 1.00 } )
     elseif colorTheme == "Incognito" then
         local black = {0.00, 0.00, 0.00, 1.00}
         local white = {1.00, 1.00, 1.00, 1.00}
@@ -595,15 +601,16 @@ end
 function createMenuTab(globalVars, tabName)
     if not imgui.BeginTabItem(tabName) then return end
     addPadding()
-    if tabName == "Settings + Info" then settingsAndInfoTab(globalVars) end
-    if tabName == "Place Notes"     then placeNotesTab(globalVars) end
-    if tabName == "Edit Notes"      then editNotesTab(globalVars) end
+    if tabName == " Info"       then infoTab(globalVars) end
+    if tabName == "Place Notes" then placeNotesTab(globalVars) end
+    if tabName == "Edit Notes"  then editNotesTab(globalVars) end
+    if tabName == "Extras"      then extrasTab(globalVars) end
     imgui.EndTabItem()
 end
--- Creates the "Settings + Info" tab
+-- Creates the "Info" tab
 -- Parameters
 --    globalVars : list of variables used globally across all menus [Table]
-function settingsAndInfoTab(globalVars)
+function infoTab(globalVars)
     listShortcuts()
     showInfoLinks()
     choosePluginAppearance(globalVars)
@@ -641,7 +648,7 @@ end
 function showInfoLinks()
     if not imgui.CollapsingHeader("Links") then return end
     provideLink("GitHub Repository", "https://github.com/kloi34/VanillaChinchilla")
-    provideLink("Capybara Photo", "https://www.flickr.com/photos/wwarby/19609144476")
+    provideLink("Chinchilla Photo", "https://www.facebook.com/cameronschinchillas/photos/a.678128788890667/1876978765672324/")
 end
 -- Lets you choose global plugin appearance settings
 -- Parameters
@@ -658,7 +665,12 @@ end
 -- Parameters
 --    globalVars : list of variables used globally across all menus [Table]
 function placeNotesTab(globalVars)
+    --[[
     choosePlaceTool(globalVars)
+    addSeparator()
+    local toolName = PLACE_TOOLS[globalVars.placeToolIndex]
+    --]]
+    imgui.Text("Coming soon, check back on the GitHub page")
 end
 -- Creates the "Edit Notes" tab
 -- Parameters
@@ -667,25 +679,50 @@ function editNotesTab(globalVars)
     chooseEditTool(globalVars)
     addSeparator()
     local toolName = EDIT_TOOLS[globalVars.editToolIndex]
+    if toolName == "Adjust LN Lengths"      then adjustLNLengthsMenu() end
     if toolName == "Shift Notes Left/Right" then shiftLeftRightMenu() end
     if toolName == "Shift Notes Up/Down"    then shiftUpDownMenu() end
+    if toolName == "Flip Notes Vertically"  then flipVerticallyMenu() end
+    if toolName == "Switch Note Lanes"      then switchNoteLanesMenu() end
+end
+-- Creates the "Extras" tab
+-- Parameters
+--    globalVars : list of variables used globally across all menus [Table]
+function extrasTab(globalVars)
+    imgui.Text("Coming soon, check back on the GitHub page")
 end
 
 --------------------------------------------------------------------------------------------- Menus
 
+-- Creates the menu for adjusting LN lengths
+function adjustLNLengthsMenu()
+    local menuVars = {
+        endRadio = false,
+        msToMove = 1
+    }
+    getVariables("adjustLNLengthsMenu", menuVars)
+    chooseWhichLNEnd(menuVars)
+    addSeparator()
+    chooseMilliseconds(menuVars)
+    saveVariables("adjustLNLengthsMenu", menuVars)
+    
+    addSeparator()
+    local enoughtNotesSelected = checkEnoughSelectedNotes(1)
+    if not enoughtNotesSelected then imgui.Text("Select 1 or more notes") return end
+    
+    local buttonText = "Change selected notes' lengths by "
+    if menuVars.msToMove > 0 then buttonText = buttonText.."+" end
+    buttonText = buttonText..menuVars.msToMove.." ms"
+    if menuVars.msToMove == 0 then buttonText = buttonText.." :jerry:" end
+    button(buttonText, ACTION_BUTTON_SIZE, adjustLNLengths, nil, menuVars)
+end
 -- Creates the menu for shifting notes horizontally
 function shiftLeftRightMenu()
     local menuVars = {
         rightRadio = false
     }
     getVariables("shiftLeftRightMenu", menuVars)
-    
-    imgui.AlignTextToFramePadding()
-    imgui.Text("Shift notes one lane")
-    imgui.SameLine(0, SAMELINE_SPACING)
-    if imgui.RadioButton("Left", not menuVars.rightRadio) then menuVars.rightRadio = false end
-    imgui.SameLine(0, RADIO_BUTTON_SPACING)
-    if imgui.RadioButton("Right", menuVars.rightRadio) then menuVars.rightRadio = true end
+    chooseWhichSide(menuVars)
     saveVariables("shiftLeftRightMenu", menuVars)
     
     addSeparator()
@@ -704,7 +741,7 @@ function shiftUpDownMenu()
         msToMove = 1
     }
     getVariables("shiftUpDownMenu", menuVars)
-    _, menuVars.msToMove = imgui.InputInt("Milliseconds", menuVars.msToMove, 1, 1)
+    chooseMilliseconds(menuVars)
     saveVariables("shiftUpDownMenu", menuVars)
     
     addSeparator()
@@ -716,6 +753,38 @@ function shiftUpDownMenu()
     buttonText = buttonText..menuVars.msToMove.." ms"
     if menuVars.msToMove == 0 then buttonText = buttonText.." :jerry:" end
     button(buttonText, ACTION_BUTTON_SIZE, shiftNotesVertically, nil, menuVars)
+end
+-- Creates the menu for vertically flipping notes
+function flipVerticallyMenu()
+    local enoughtNotesSelected = checkEnoughSelectedNotes(1)
+    if not enoughtNotesSelected then imgui.Text("Select 1 or more notes") return end
+    
+    local buttonText = "Flip selected notes vertically"
+    button(buttonText, ACTION_BUTTON_SIZE, flipNotesVertically, nil, nil)
+end
+-- Creates the menu for switching notes' lanes
+function switchNoteLanesMenu()
+    local menuVars = {
+        newLanes = enumeratedList(map.GetKeyCount()),
+        selectedLaneIndexes = {}
+    }
+    getVariables("switchNoteLanesMenu", menuVars)
+    displayOldLanesButtons()
+    displayNewLanesButtons(menuVars)
+    showSwappingLane(menuVars)
+    
+    addSeparator()
+    randomizeNoteLanesButton(menuVars)
+    imgui.SameLine(0, SAMELINE_SPACING)
+    resetNoteLanesButton(menuVars)
+    saveVariables("switchNoteLanesMenu", menuVars)
+    
+    addSeparator()
+    local enoughtNotesSelected = checkEnoughSelectedNotes(1)
+    if not enoughtNotesSelected then imgui.Text("Select 1 or more notes") return end
+    
+    local buttonText = "Switch selected notes from old to new lanes"
+    button(buttonText, ACTION_BUTTON_SIZE, switchNoteLanes, nil, menuVars)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -768,6 +837,16 @@ function checkEnoughSelectedNotes(minimumNotes)
     if minimumNotes == 1 then return true end
     return selectedNotes[1].StartTime ~= selectedNotes[numSelectedNotes].StartTime
 end
+-- Returns an ascending list of whole numbers starting from 1 [Table]
+-- Parameters
+--    number : final number in the list (1 to number) [Int]
+function enumeratedList(number)
+    local numbersList = {}
+    for i = 1, number do
+        numbersList[i] = i
+    end
+    return numbersList
+end
 
 ---------------------------------------------------------------------------------------------------
 -- Choose Functions (Sorted Alphabetically) -------------------------------------------------------
@@ -787,7 +866,7 @@ function chooseColorTheme(globalVars)
     if not isRGBColorTheme then return end
     chooseRGBPeriod(globalVars)
 end
--- Lets you choose which edit tool to use
+-- Lets you choose which note-editing tool to use
 -- Parameters
 --    globalVars : list of variables used globally across all menus [Table]
 function chooseEditTool(globalVars)
@@ -798,7 +877,13 @@ function chooseEditTool(globalVars)
     _, comboIndex = imgui.Combo("##edittool", comboIndex, EDIT_TOOLS, #EDIT_TOOLS)
     globalVars.editToolIndex = comboIndex + 1
 end
--- Lets you choose which place tool to use
+-- Lets you choose an integer number of milliseconds (to move)
+-- Parameters
+--    menuVars : list of variables used for the current menu [Table]
+function chooseMilliseconds(menuVars)
+    _, menuVars.msToMove = imgui.InputInt("Milliseconds", menuVars.msToMove, 1, 1)
+end
+-- Lets you choose which note-placing tool to use
 -- Parameters
 --    globalVars : list of variables used globally across all menus [Table]
 function choosePlaceTool(globalVars)
@@ -826,32 +911,95 @@ function chooseStyleTheme(globalVars)
     _, comboIndex = imgui.Combo("Style Theme", comboIndex, STYLE_THEMES, #STYLE_THEMES)
     globalVars.styleThemeIndex = comboIndex + 1
 end
-
+-- Lets you choose LN start or LN end
+-- Parameters
+--    menuVars : list of variables used for the current menu [Table]
+function chooseWhichLNEnd(menuVars)
+    imgui.AlignTextToFramePadding()
+    imgui.Text("Keep in place: ")
+    imgui.SameLine(0, SAMELINE_SPACING)
+    if imgui.RadioButton("LN Start", not menuVars.endRadio) then menuVars.endRadio = false end
+    imgui.SameLine(0, RADIO_BUTTON_SPACING)
+    if imgui.RadioButton("LN End", menuVars.endRadio) then menuVars.endRadio = true end
+end
+-- Lets you choose a side (left or right)
+-- Parameters
+--    menuVars : list of variables used for the current menu [Table]
+function chooseWhichSide(menuVars)
+    imgui.AlignTextToFramePadding()
+    imgui.Text("Shift notes one lane")
+    imgui.SameLine(0, SAMELINE_SPACING)
+    if imgui.RadioButton("Left", not menuVars.rightRadio) then menuVars.rightRadio = false end
+    imgui.SameLine(0, RADIO_BUTTON_SPACING)
+    if imgui.RadioButton("Right", menuVars.rightRadio) then menuVars.rightRadio = true end
+end
 ---------------------------------------------------------------------------------------------------
 -- Do-er Functions --------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 
--- Shift notes left one lane
+-- Changes selected notes' lengths (note end times) by a specified amount
+-- Parameters
+--    menuVars : list of variables used for the "Stretch Notes" menu [Table]
+function adjustLNLengths(menuVars)
+    local msToMove = menuVars.msToMove
+    local keepLNEndInPlace = menuVars.endRadio
+    if msToMove == 0 then return end
+    local notesToRemove = state.SelectedHitObjects
+    local notesToAdd = {}
+    for _, note in pairs(notesToRemove) do
+        local isRiceNote = note.EndTime == 0
+        local newStartTime = note.StartTime
+        local newEndTime = note.EndTime
+        if keepLNEndInPlace then
+            newStartTime = newStartTime - msToMove
+            if isRiceNote then
+                newEndTime = note.StartTime
+            end
+            if newStartTime >= newEndTime then
+                newEndTime = 0
+                if not isRiceNote then
+                    newStartTime = note.EndTime
+                else
+                    newStartTime = note.StartTime
+                end
+            end
+        else
+            newEndTime = newEndTime + msToMove
+            if isRiceNote then
+                newEndTime = note.StartTime + msToMove
+            end
+            if newEndTime <= note.StartTime then
+                newEndTime = 0
+            end
+        end
+        table.insert(notesToAdd, utils.CreateHitObject(newStartTime, note.Lane, newEndTime,
+                                                       note.HitSound, note.EditorLayer))
+    end
+    removeAndAddNotes(notesToRemove, notesToAdd)
+end
+-- Shift selected notes left one lane
 function shiftNotesLeft()
     shiftNotesHorizontally(-1)
 end
--- Shift notes right one lane
+-- Shift selected notes right one lane
 function shiftNotesRight()
     shiftNotesHorizontally(1)
 end
--- Shifts notes horizontally across lane(s)
+-- Shifts selected notes horizontally across lane(s)
+-- Parameters
+--    laneShift : amount of lanes and direction to shift notes by [Int]
 function shiftNotesHorizontally(laneShift)
     local notesToRemove = state.SelectedHitObjects
     local notesToAdd = {}
-    local keyMode = map.GetKeyCount()
+    local totalNumLanes = map.GetKeyCount()
     for _, note in pairs(notesToRemove) do
-        local newLane = ((note.Lane + laneShift - 1) % keyMode) + 1
+        local newLane = ((note.Lane + laneShift - 1) % totalNumLanes) + 1
         table.insert(notesToAdd, utils.CreateHitObject(note.StartTime, newLane, note.EndTime,
                                                        note.HitSound, note.EditorLayer))
     end
     removeAndAddNotes(notesToRemove, notesToAdd)
 end
--- Shifts notes down or up by a specified amount
+-- Shifts selected notes down or up by a specified amount
 -- Parameters
 --    menuVars : list of variables used for the "Shift Notes Up/Down" menu [Table]
 function shiftNotesVertically(menuVars)
@@ -868,7 +1016,59 @@ function shiftNotesVertically(menuVars)
     end
     removeAndAddNotes(notesToRemove, notesToAdd)
 end
--- Removes and adds the given notes
+-- Flips selected notes vertically
+function flipNotesVertically()
+    local notesToRemove = state.SelectedHitObjects
+    local notesToAdd = {}
+    local boundaryTimes = findMinMaxTime(notesToRemove)
+    local midPoint = (boundaryTimes.max + boundaryTimes.min) / 2
+    for _, note in pairs(notesToRemove) do
+        local noteIsLN = note.EndTime ~= 0
+        local newStartTime = 2 * midPoint - note.StartTime
+        local newEndTime = 0
+        if noteIsLN then
+            newEndTime = 2 * midPoint - note.StartTime
+            newStartTime = 2 * midPoint - note.EndTime
+        end
+        table.insert(notesToAdd, utils.CreateHitObject(newStartTime, note.Lane, newEndTime,
+                                                       note.HitSound, note.EditorLayer))
+    end
+    removeAndAddNotes(notesToRemove, notesToAdd)
+end
+-- Returns a table of minimum and maximum times of a list of notes [Table]
+-- Parameters
+--    notes : notes to find minimum and maximum times of [Table]
+function findMinMaxTime(notes)
+    local min = math.huge
+    local max = -math.huge
+    for _, note in pairs(notes) do
+        min = math.min(note.StartTime, min)
+        max = math.max(note.StartTime, max)
+        if note.EndTime ~= 0 then
+            max = math.max(note.EndTime, max)
+        end
+    end
+    return {min = min, max = max}
+end
+-- Switches the lanes/columns of the selected notes
+-- Parameters
+--    menuVars : list of variables used for the "Switch Note Lanes" menu [Table]
+function switchNoteLanes(menuVars)
+    local notesToRemove = state.SelectedHitObjects
+    local notesToAdd = {}
+    local reverseLookupLane = {}
+    for i = 1, #menuVars.newLanes do
+        local newLaneValue = menuVars.newLanes[i]
+        reverseLookupLane[newLaneValue] = i
+    end
+    for _, note in pairs(notesToRemove) do
+        local newLane = reverseLookupLane[note.Lane]
+        table.insert(notesToAdd, utils.CreateHitObject(note.StartTime, newLane, note.EndTime,
+                                                       note.HitSound, note.EditorLayer))
+    end
+    removeAndAddNotes(notesToRemove, notesToAdd)
+end
+-- Removes and adds the given notes (and auto-selects the newly added notes)
 -- Parameters
 --    notesToRemove : list of notes to remove [Table]
 --    notesToAdd    : list of notes to add [Table]
@@ -879,4 +1079,78 @@ function removeAndAddNotes(notesToRemove, notesToAdd)
     }
     actions.PerformBatch(editorActions)
     actions.SetHitObjectSelection(notesToAdd)
+end
+
+---------------------------------------------------------------------------------------------------
+-- Other Functions --------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+
+-- Creates a button that randomizes new lanes to switch to
+-- Parameters
+--    menuVars : list of variables used for the "Switch Note Lanes" menu [Table]
+function randomizeNoteLanesButton(menuVars)
+    if not imgui.Button("Randomize", HALF_BUTTON_SIZE) then return end
+    local lanes = enumeratedList(map.GetKeyCount())
+    menuVars.newLanes = {}
+    while #lanes > 0 do
+        table.insert(menuVars.newLanes, table.remove(lanes, math.random(1, #lanes)))
+    end
+end
+
+-- Creates a button that resets the new lanes to switch to
+-- Parameters
+--    menuVars : list of variables used for the "Switch Note Lanes" menu [Table]
+function resetNoteLanesButton(menuVars)
+    if not imgui.Button("Reset", HALF_BUTTON_SIZE) then return end
+    menuVars.newLanes = enumeratedList(map.GetKeyCount())
+end
+-- Creates buttons that show the old lane order
+function displayOldLanesButtons()
+    for i = 1, map.GetKeyCount() do
+        imgui.Button(i.."##1", LANE_BUTTON_SIZE)
+        imgui.SameLine(0, SAMELINE_SPACING)
+    end
+    helpMarker("Old lane order (top)\nNew lane order (bottom)\nClick on new lane order buttons "..
+               "to switch lanes")
+    local indentAmount = (map.GetKeyCount() + 0.7) * LANE_BUTTON_SIZE[1] / 2
+    imgui.Indent(indentAmount)
+    imgui.Text("V")
+    imgui.Unindent(indentAmount)
+end
+-- Creates buttons that show the new lane order and can be switched around
+-- Parameters
+--    menuVars : list of variables used for the "Switch Note Lanes" menu [Table]
+function displayNewLanesButtons(menuVars)
+    for i = 1, map.GetKeyCount() do
+        if i ~= 1 then imgui.SameLine(0, SAMELINE_SPACING) end
+        newLaneButton(menuVars, i)
+    end
+end
+-- Creates a new lane button
+-- Parameters
+--    menuVars : list of variables used for the "Switch Note Lanes" menu [Table]
+--    i        : current new lane button number to create [Int]
+function newLaneButton(menuVars, i)
+    local currentLane = menuVars.newLanes[i]
+    if not imgui.Button(currentLane.."##2", LANE_BUTTON_SIZE) then return end
+    
+    table.insert(menuVars.selectedLaneIndexes, i)
+    if #menuVars.selectedLaneIndexes < 2 then return end
+    
+    local lanePosition1 = menuVars.selectedLaneIndexes[1]
+    local lanePosition2 = menuVars.selectedLaneIndexes[2]
+    local firstLane = menuVars.newLanes[lanePosition1]
+    local secondLane = menuVars.newLanes[lanePosition2]
+    menuVars.newLanes[lanePosition1] = secondLane
+    menuVars.newLanes[lanePosition2] = firstLane
+    menuVars.selectedLaneIndexes = {}
+end
+-- Shows the lane currently being swapped
+-- Parameters
+--    menuVars : list of variables used for the "Switch Note Lanes" menu [Table]
+function showSwappingLane(menuVars)
+    if #menuVars.selectedLaneIndexes == 0 then return end
+    imgui.BeginTooltip()
+    imgui.Button(menuVars.newLanes[menuVars.selectedLaneIndexes[1]], LANE_BUTTON_SIZE)
+    imgui.EndTooltip()
 end
