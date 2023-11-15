@@ -1,4 +1,4 @@
--- VanillaChinchilla v0.0 (13 November 2023)
+-- VanillaChinchilla v0.1 (15 November 2023)
 -- by kloi34
 
 ---------------------------------------------------------------------------------------------------
@@ -6,8 +6,7 @@
 ---------------------------------------------------------------------------------------------------
 
 -- This is an editor plugin for Quaver, the ultimate community-driven and open-source competitive
--- rhythm game. The plugin provides various tools to place and edit regular notes and long notes
--- in a variety of ways.
+-- rhythm game. The plugin provides various tools to place and edit notes in a variety of ways.
 
 -- If you have any feature suggestions or issues with the plugin, please open an issue at 
 -- https://github.com/kloi34/VanillaChinchilla/issues
@@ -45,8 +44,8 @@ STYLE_THEMES = {                   -- available style/appearance themes for the 
     "Boxed + Border"
 }
 COLOR_THEMES = {                   -- available color themes for the plugin
-    "Strawberry",
     "Amethyst",
+    "Strawberry",
     "Tree",
     "Incognito",
     "Incognito + RGB",
@@ -62,7 +61,8 @@ TAB_MENUS = {                      -- tab names for different SV menus
     "Extras"
 }
 PLACE_TOOLS = {                    -- available tools to place notes with
-    "None"
+    "Basic Dump",
+    "Chinchilla Dump"
 }
 EDIT_TOOLS = {                     -- available tools to edit notes with
     "Adjust LN Lengths",
@@ -173,38 +173,7 @@ end
 --    globalVars : list of variables used globally across all menus [Table]
 --    colorTheme : name of the target color theme [String]
 function setPluginAppearanceColors(globalVars, colorTheme)
-    if colorTheme == "Strawberry" then
-        imgui.PushStyleColor( imgui_col.WindowBg,               { 0.00, 0.00, 0.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Border,                 { 1.00, 0.81, 0.88, 0.30 } )
-        imgui.PushStyleColor( imgui_col.FrameBg,                { 0.28, 0.14, 0.24, 1.00 } )
-        imgui.PushStyleColor( imgui_col.FrameBgHovered,         { 0.38, 0.24, 0.34, 1.00 } )
-        imgui.PushStyleColor( imgui_col.FrameBgActive,          { 0.43, 0.29, 0.39, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TitleBg,                { 0.65, 0.41, 0.48, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TitleBgActive,          { 0.75, 0.51, 0.58, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       { 0.75, 0.51, 0.58, 0.50 } )
-        imgui.PushStyleColor( imgui_col.CheckMark,              { 1.00, 0.81, 0.88, 1.00 } )
-        imgui.PushStyleColor( imgui_col.SliderGrab,             { 0.75, 0.56, 0.63, 1.00 } )
-        imgui.PushStyleColor( imgui_col.SliderGrabActive,       { 0.80, 0.61, 0.68, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Button,                 { 0.50, 0.31, 0.38, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ButtonHovered,          { 0.60, 0.41, 0.48, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ButtonActive,           { 0.70, 0.51, 0.58, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Tab,                    { 0.50, 0.31, 0.38, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TabHovered,             { 0.75, 0.51, 0.58, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TabActive,              { 0.75, 0.51, 0.58, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Header,                 { 1.00, 0.81, 0.88, 0.40 } )
-        imgui.PushStyleColor( imgui_col.HeaderHovered,          { 1.00, 0.81, 0.88, 0.50 } )
-        imgui.PushStyleColor( imgui_col.HeaderActive,           { 1.00, 0.81, 0.88, 0.54 } )
-        imgui.PushStyleColor( imgui_col.Separator,              { 1.00, 0.81, 0.88, 0.30 } )
-        imgui.PushStyleColor( imgui_col.Text,                   { 1.00, 1.00, 1.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TextSelectedBg,         { 1.00, 0.81, 0.88, 0.40 } )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrab,          { 0.50, 0.31, 0.38, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   { 0.60, 0.41, 0.48, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    { 0.70, 0.51, 0.58, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotLines,              { 0.61, 0.61, 0.61, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotLinesHovered,       { 1.00, 0.43, 0.35, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotHistogram,          { 0.90, 0.70, 0.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   { 1.00, 0.60, 0.00, 1.00 } )
-    elseif colorTheme == "Amethyst" then
+    if colorTheme == "Amethyst" then
         imgui.PushStyleColor( imgui_col.WindowBg,               { 0.16, 0.00, 0.20, 1.00 } )
         imgui.PushStyleColor( imgui_col.Border,                 { 0.90, 0.00, 0.81, 0.30 } )
         imgui.PushStyleColor( imgui_col.FrameBg,                { 0.40, 0.20, 0.40, 1.00 } )
@@ -235,6 +204,37 @@ function setPluginAppearanceColors(globalVars, colorTheme)
         imgui.PushStyleColor( imgui_col.PlotLinesHovered,       { 1.00, 0.70, 0.30, 1.00 } )
         imgui.PushStyleColor( imgui_col.PlotHistogram,          { 1.00, 0.80, 1.00, 1.00 } )
         imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   { 1.00, 0.70, 0.30, 1.00 } )
+    elseif colorTheme == "Strawberry" then
+        imgui.PushStyleColor( imgui_col.WindowBg,               { 0.00, 0.00, 0.00, 1.00 } )
+        imgui.PushStyleColor( imgui_col.Border,                 { 1.00, 0.81, 0.88, 0.30 } )
+        imgui.PushStyleColor( imgui_col.FrameBg,                { 0.28, 0.14, 0.24, 1.00 } )
+        imgui.PushStyleColor( imgui_col.FrameBgHovered,         { 0.38, 0.24, 0.34, 1.00 } )
+        imgui.PushStyleColor( imgui_col.FrameBgActive,          { 0.43, 0.29, 0.39, 1.00 } )
+        imgui.PushStyleColor( imgui_col.TitleBg,                { 0.65, 0.41, 0.48, 1.00 } )
+        imgui.PushStyleColor( imgui_col.TitleBgActive,          { 0.75, 0.51, 0.58, 1.00 } )
+        imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       { 0.75, 0.51, 0.58, 0.50 } )
+        imgui.PushStyleColor( imgui_col.CheckMark,              { 1.00, 0.81, 0.88, 1.00 } )
+        imgui.PushStyleColor( imgui_col.SliderGrab,             { 0.75, 0.56, 0.63, 1.00 } )
+        imgui.PushStyleColor( imgui_col.SliderGrabActive,       { 0.80, 0.61, 0.68, 1.00 } )
+        imgui.PushStyleColor( imgui_col.Button,                 { 0.50, 0.31, 0.38, 1.00 } )
+        imgui.PushStyleColor( imgui_col.ButtonHovered,          { 0.60, 0.41, 0.48, 1.00 } )
+        imgui.PushStyleColor( imgui_col.ButtonActive,           { 0.70, 0.51, 0.58, 1.00 } )
+        imgui.PushStyleColor( imgui_col.Tab,                    { 0.50, 0.31, 0.38, 1.00 } )
+        imgui.PushStyleColor( imgui_col.TabHovered,             { 0.75, 0.51, 0.58, 1.00 } )
+        imgui.PushStyleColor( imgui_col.TabActive,              { 0.75, 0.51, 0.58, 1.00 } )
+        imgui.PushStyleColor( imgui_col.Header,                 { 1.00, 0.81, 0.88, 0.40 } )
+        imgui.PushStyleColor( imgui_col.HeaderHovered,          { 1.00, 0.81, 0.88, 0.50 } )
+        imgui.PushStyleColor( imgui_col.HeaderActive,           { 1.00, 0.81, 0.88, 0.54 } )
+        imgui.PushStyleColor( imgui_col.Separator,              { 1.00, 0.81, 0.88, 0.30 } )
+        imgui.PushStyleColor( imgui_col.Text,                   { 1.00, 1.00, 1.00, 1.00 } )
+        imgui.PushStyleColor( imgui_col.TextSelectedBg,         { 1.00, 0.81, 0.88, 0.40 } )
+        imgui.PushStyleColor( imgui_col.ScrollbarGrab,          { 0.50, 0.31, 0.38, 1.00 } )
+        imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   { 0.60, 0.41, 0.48, 1.00 } )
+        imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    { 0.70, 0.51, 0.58, 1.00 } )
+        imgui.PushStyleColor( imgui_col.PlotLines,              { 0.61, 0.61, 0.61, 1.00 } )
+        imgui.PushStyleColor( imgui_col.PlotLinesHovered,       { 1.00, 0.43, 0.35, 1.00 } )
+        imgui.PushStyleColor( imgui_col.PlotHistogram,          { 0.90, 0.70, 0.00, 1.00 } )
+        imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   { 1.00, 0.60, 0.00, 1.00 } )
     elseif colorTheme == "Tree" then
         imgui.PushStyleColor( imgui_col.WindowBg,               { 0.20, 0.16, 0.00, 1.00 } )
         imgui.PushStyleColor( imgui_col.Border,                 { 0.81, 0.90, 0.00, 0.30 } )
@@ -665,12 +665,11 @@ end
 -- Parameters
 --    globalVars : list of variables used globally across all menus [Table]
 function placeNotesTab(globalVars)
-    --[[
     choosePlaceTool(globalVars)
     addSeparator()
     local toolName = PLACE_TOOLS[globalVars.placeToolIndex]
-    --]]
-    imgui.Text("Coming soon, check back on the GitHub page")
+    if toolName == "Basic Dump"      then basicDumpMenu() end
+    if toolName == "Chinchilla Dump" then local a = 1 end
 end
 -- Creates the "Edit Notes" tab
 -- Parameters
@@ -694,6 +693,38 @@ end
 
 --------------------------------------------------------------------------------------------- Menus
 
+-- Creates the menu for placing basic dumps
+function basicDumpMenu()
+    local menuVars = {
+        msInitial = 10,
+        msIncrement = 9,
+        numNotes = 11,
+        noteGaps = {},
+        totalDuration = 0,
+        avgGapRounded = 0
+    }
+    getVariables("basicDumpMenu", menuVars)
+    local settingsChanged = #menuVars.noteGaps == 0
+    settingsChanged = chooseMSInitial(menuVars) or settingsChanged
+    settingsChanged = chooseMSIncrement(menuVars) or settingsChanged
+    settingsChanged = chooseNumNotes(menuVars) or settingsChanged
+    
+    if settingsChanged then
+        calculateNoteGaps(menuVars)
+        menuVars.totalDuration = calculateSum(menuVars.noteGaps)
+        menuVars.avgGapRounded = round(menuVars.totalDuration / menuVars.numNotes, 3)
+    end
+    saveVariables("basicDumpMenu", menuVars)
+    
+    addSeparator()
+    showDumpInfo(menuVars)
+    
+    imgui.Columns(1)
+    
+    addSeparator()
+    local buttonText = "Place basic dump at current song time"
+    button(buttonText, ACTION_BUTTON_SIZE, placeBasicDump, nil, menuVars)
+end
 -- Creates the menu for adjusting LN lengths
 function adjustLNLengthsMenu()
     local menuVars = {
@@ -847,7 +878,28 @@ function enumeratedList(number)
     end
     return numbersList
 end
-
+-- Returns a table of minimum and maximum times of a list of notes [Table]
+-- Parameters
+--    notes : notes to find minimum and maximum times of [Table]
+function findMinMaxTime(notes)
+    local min = math.huge
+    local max = -math.huge
+    for _, note in pairs(notes) do
+        min = math.min(note.StartTime, min)
+        max = math.max(note.StartTime, note.EndTime, max)
+    end
+    return {min = min, max = max}
+end
+-- Calculates and returns the sum of a list of numbers [Int/Float]
+-- Parameters
+--    numList : list of numbers to calculate the sum of [Table]
+function calculateSum(numList)
+    local sum = 0
+    for _, number in pairs(numList) do
+        sum = sum + number
+    end
+    return sum
+end
 ---------------------------------------------------------------------------------------------------
 -- Choose Functions (Sorted Alphabetically) -------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
@@ -882,6 +934,34 @@ end
 --    menuVars : list of variables used for the current menu [Table]
 function chooseMilliseconds(menuVars)
     _, menuVars.msToMove = imgui.InputInt("Milliseconds", menuVars.msToMove, 1, 1)
+end
+-- Lets you choose an amount of milliseconds to increment 
+-- Returns whether or not the increment changed [Boolean]
+-- Parameters
+--    menuVars : list of variables used for the current menu [Table]
+function chooseMSIncrement(menuVars)
+    local oldmsIncrement = menuVars.msIncrement 
+    _, menuVars.msIncrement = imgui.InputFloat("Increment", oldmsIncrement, 0, 0, "%.3f ms")
+    return oldmsIncrement ~= menuVars.msIncrement 
+end
+-- Lets you choose an initial amount of milliseconds
+-- Returns whether or not the initial amount changed [Boolean]
+-- Parameters
+--    menuVars : list of variables used for the current menu [Table]
+function chooseMSInitial(menuVars)
+    local oldmsInitial = menuVars.msInitial
+    _, menuVars.msInitial = imgui.InputFloat("Initial Gap", oldmsInitial, 0, 0, "%.3f ms")
+    return oldmsInitial ~= menuVars.msInitial
+end
+-- Lets you choose the number of notes
+-- Returns whether or not the number of notes changed [Boolean]
+-- Parameters
+--    menuVars : list of variables used for the current menu [Table]
+function chooseNumNotes(menuVars)
+    local oldNumNotes = menuVars.numNotes
+    local _, newNumNotes = imgui.InputInt("# Notes", oldNumNotes, 1, 1)
+    menuVars.numNotes = clampToInterval(newNumNotes, 2, 100)
+    return oldNumNotes ~= menuVars.numNotes
 end
 -- Lets you choose which note-placing tool to use
 -- Parameters
@@ -937,6 +1017,23 @@ end
 -- Do-er Functions --------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 
+-- Places basic dump notes at the current song time
+-- Parameters
+--    menuVars : list of variables used for the "Basic Dump" menu [Table]
+function placeBasicDump(menuVars)
+    local notesToAdd = {}
+    local totalNumLanes = map.GetKeyCount()
+    local noteGaps = menuVars.noteGaps
+    local currentTime = state.SongTime
+    local currentLane = 1
+    table.insert(notesToAdd, utils.CreateHitObject(currentTime, currentLane))
+    for i = 1, #noteGaps do
+        currentTime = currentTime + noteGaps[i]
+        currentLane = (currentLane % totalNumLanes) + 1
+        table.insert(notesToAdd, utils.CreateHitObject(currentTime, currentLane))
+    end
+    removeAndAddNotes({}, notesToAdd)
+end
 -- Changes selected notes' lengths (note end times) by a specified amount
 -- Parameters
 --    menuVars : list of variables used for the "Stretch Notes" menu [Table]
@@ -951,7 +1048,7 @@ function adjustLNLengths(menuVars)
         local newStartTime = note.StartTime
         local newEndTime = note.EndTime
         if keepLNEndInPlace then
-            newStartTime = newStartTime - msToMove
+            newStartTime = newStartTime - msToMovem
             if isRiceNote then
                 newEndTime = note.StartTime
             end
@@ -1035,21 +1132,6 @@ function flipNotesVertically()
     end
     removeAndAddNotes(notesToRemove, notesToAdd)
 end
--- Returns a table of minimum and maximum times of a list of notes [Table]
--- Parameters
---    notes : notes to find minimum and maximum times of [Table]
-function findMinMaxTime(notes)
-    local min = math.huge
-    local max = -math.huge
-    for _, note in pairs(notes) do
-        min = math.min(note.StartTime, min)
-        max = math.max(note.StartTime, max)
-        if note.EndTime ~= 0 then
-            max = math.max(note.EndTime, max)
-        end
-    end
-    return {min = min, max = max}
-end
 -- Switches the lanes/columns of the selected notes
 -- Parameters
 --    menuVars : list of variables used for the "Switch Note Lanes" menu [Table]
@@ -1085,6 +1167,32 @@ end
 -- Other Functions --------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 
+-- Calculates the note gaps for a simple dump
+-- Parameters
+--    menuVars : list of variables used for the "Basic Dump" menu [Table]
+function calculateNoteGaps(menuVars)
+    menuVars.noteGaps = {}
+    for i = 0, (menuVars.numNotes - 2) do
+        local floatGap = menuVars.msInitial + i * menuVars.msIncrement
+        local intGap = round(floatGap, 0)
+        table.insert(menuVars.noteGaps, intGap)
+    end
+end
+-- Displays info for the dump
+-- Parameters
+--    menuVars : list of variables used for the "Basic Dump" menu [Table]
+function showDumpInfo(menuVars)
+    imgui.Text("Projected Dump Info:")
+    addPadding()
+    imgui.Columns(2, "BasicDumpInfo", false)
+    imgui.Text("Total Duration:")
+    imgui.Text("Final Gap:")
+    imgui.Text("Average Gap:")
+    imgui.NextColumn()
+    imgui.Text(menuVars.totalDuration.." ms")
+    imgui.Text(menuVars.noteGaps[#menuVars.noteGaps].." ms")
+    imgui.Text(menuVars.avgGapRounded.." ms")
+end
 -- Creates a button that randomizes new lanes to switch to
 -- Parameters
 --    menuVars : list of variables used for the "Switch Note Lanes" menu [Table]
@@ -1096,7 +1204,6 @@ function randomizeNoteLanesButton(menuVars)
         table.insert(menuVars.newLanes, table.remove(lanes, math.random(1, #lanes)))
     end
 end
-
 -- Creates a button that resets the new lanes to switch to
 -- Parameters
 --    menuVars : list of variables used for the "Switch Note Lanes" menu [Table]
