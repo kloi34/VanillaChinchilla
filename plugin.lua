@@ -94,33 +94,27 @@ function getCurrentRGBColors(rgbPeriod)
     local stageNumberIntoCycle = math.floor(percentIntoCycle * 6)
     local percentIntoStage = percentIntoCycle * 6 - stageNumberIntoCycle
     percentIntoStage = clampToInterval(percentIntoStage, 0, 1)
-    local red
-    local green
-    local blue
+    local red = 0 
+    local green = 0
+    local blue = 0
     if stageNumberIntoCycle == 0 then
-        red = 0
         green = 1 - percentIntoStage
         blue = 1
     elseif stageNumberIntoCycle == 1 then
         blue = 1
-        green = 0
         red = percentIntoStage
     elseif stageNumberIntoCycle == 2 then
         blue = 1 - percentIntoStage
-        green = 0
         red = 1
     elseif stageNumberIntoCycle == 3 then
-        blue = 0
         green = percentIntoStage
         red = 1
     elseif stageNumberIntoCycle == 4 then
-        blue = 0
         green = 1
         red = 1 - percentIntoStage
     else
         blue = percentIntoStage
         green = 1
-        red = 0
     end
     return {red = red, green = green, blue = blue}
 end
@@ -669,7 +663,7 @@ function placeNotesTab(globalVars)
     addSeparator()
     local toolName = PLACE_TOOLS[globalVars.placeToolIndex]
     if toolName == "Basic Dump"      then basicDumpMenu() end
-    if toolName == "Chinchilla Dump" then local a = 1 end
+    if toolName == "Chinchilla Dump" then imgui.Text("Coming soon") end
 end
 -- Creates the "Edit Notes" tab
 -- Parameters
@@ -1048,7 +1042,7 @@ function adjustLNLengths(menuVars)
         local newStartTime = note.StartTime
         local newEndTime = note.EndTime
         if keepLNEndInPlace then
-            newStartTime = newStartTime - msToMovem
+            newStartTime = newStartTime - msToMove
             if isRiceNote then
                 newEndTime = note.StartTime
             end
