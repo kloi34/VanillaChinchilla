@@ -1,4 +1,4 @@
--- VanillaChinchilla v0.1 (15 November 2023)
+-- VanillaChinchilla v0.1 (16 November 2023)
 -- by kloi34
 
 ---------------------------------------------------------------------------------------------------
@@ -27,7 +27,7 @@ ACTION_BUTTON_SIZE = {             -- dimensions of the button that does importa
     1.6 * DEFAULT_WIDGET_HEIGHT
 }
 HALF_BUTTON_SIZE = {               -- dimensions of a button that does less important things
-    0.8 * DEFAULT_WIDGET_WIDTH - 2.5,
+    0.8 * DEFAULT_WIDGET_WIDTH - 2,
     DEFAULT_WIDGET_HEIGHT - 2
 }
 LANE_BUTTON_SIZE = {30, 30}
@@ -76,40 +76,32 @@ EDIT_TOOLS = {                     -- available tools to edit notes with
 -- Plugin Appearance, Styles and Colors -----------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 
--- Returns coordinates relative to the plugin window [Table]
--- Parameters
---    x : x coordinate relative to the plugin window [Int]
---    y : y coordinate relative to the plugin window [Int]
-function coordsRelativeToWindow(x, y)
-    local newX = x + imgui.GetWindowPos()[1]
-    local newY = y + imgui.GetWindowPos()[2]
-    return {newX, newY}
-end
 -- Returns the RGB colors based on the current time [Table]
 -- Parameters
 --    rgbPeriod : length in seconds for one complete RGB cycle (i.e. period) [Int/Float]
 function getCurrentRGBColors(rgbPeriod)
     local currentTime = imgui.GetTime()
     local percentIntoCycle = (currentTime % rgbPeriod) / rgbPeriod
-    local stageNumberIntoCycle = math.floor(percentIntoCycle * 6)
-    local percentIntoStage = percentIntoCycle * 6 - stageNumberIntoCycle
+    local stagesElapsed = 6 * percentIntoCycle
+    local currentStageNumber = math.floor(stagesElapsed)
+    local percentIntoStage = stagesElapsed - currentStageNumber
     percentIntoStage = clampToInterval(percentIntoStage, 0, 1)
     local red = 0 
     local green = 0
     local blue = 0
-    if stageNumberIntoCycle == 0 then
+    if currentStageNumber == 0 then
         green = 1 - percentIntoStage
         blue = 1
-    elseif stageNumberIntoCycle == 1 then
+    elseif currentStageNumber == 1 then
         blue = 1
         red = percentIntoStage
-    elseif stageNumberIntoCycle == 2 then
+    elseif currentStageNumber == 2 then
         blue = 1 - percentIntoStage
         red = 1
-    elseif stageNumberIntoCycle == 3 then
+    elseif currentStageNumber == 3 then
         green = percentIntoStage
         red = 1
-    elseif stageNumberIntoCycle == 4 then
+    elseif currentStageNumber == 4 then
         green = 1
         red = 1 - percentIntoStage
     else
@@ -118,13 +110,6 @@ function getCurrentRGBColors(rgbPeriod)
     end
     return {red = red, green = green, blue = blue}
 end
--- Converts an RGBA color value into uint (unsigned integer) and returns the converted value [Int]
--- Parameters
---    r : red value [Int]
---    g : green value [Int]
---    b : blue value [Int]
---    a : alpha value [Int]
-function rgbaToUint(r, g, b, a) return a*16^6 + b*16^4 + g*16^2 + r end
 -- Configures the plugin GUI appearance
 -- Parameters
 --    globalVars : list of variables used globally across all menus [Table]
@@ -133,17 +118,19 @@ function setPluginAppearance(globalVars)
     local styleTheme = STYLE_THEMES[globalVars.styleThemeIndex]
     
     setPluginAppearanceStyles(styleTheme)
-    setPluginAppearanceColors(globalVars, colorTheme)
+    setPluginAppearanceColors(colorTheme, globalVars.rgbPeriod)
 end
 -- Configures the plugin GUI styles
 -- Parameters
 --    styleTheme : name of the desired style theme [String]
 function setPluginAppearanceStyles(styleTheme)
-    local boxed = styleTheme == "Boxed" or styleTheme == "Boxed + Border"
+    local boxed = styleTheme == "Boxed" or
+                  styleTheme == "Boxed + Border"
     local cornerRoundnessValue = 5 -- up to 12, 14 for WindowRounding and 16 for ChildRounding
     if boxed then cornerRoundnessValue = 0 end
     
-    local addBorder = styleTheme == "Rounded + Border" or styleTheme == "Boxed + Border"
+    local addBorder = styleTheme == "Rounded + Border" or
+                      styleTheme == "Boxed + Border"
     local borderSize = 0
     if addBorder then borderSize = 1 end
 
@@ -164,289 +151,318 @@ function setPluginAppearanceStyles(styleTheme)
 end
 -- Configures the plugin GUI colors
 -- Parameters
---    globalVars : list of variables used globally across all menus [Table]
 --    colorTheme : name of the target color theme [String]
-function setPluginAppearanceColors(globalVars, colorTheme)
-    if colorTheme == "Amethyst" then
-        imgui.PushStyleColor( imgui_col.WindowBg,               { 0.16, 0.00, 0.20, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Border,                 { 0.90, 0.00, 0.81, 0.30 } )
-        imgui.PushStyleColor( imgui_col.FrameBg,                { 0.40, 0.20, 0.40, 1.00 } )
-        imgui.PushStyleColor( imgui_col.FrameBgHovered,         { 0.50, 0.30, 0.50, 1.00 } )
-        imgui.PushStyleColor( imgui_col.FrameBgActive,          { 0.55, 0.35, 0.55, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TitleBg,                { 0.31, 0.11, 0.35, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TitleBgActive,          { 0.41, 0.21, 0.45, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       { 0.41, 0.21, 0.45, 0.50 } )
-        imgui.PushStyleColor( imgui_col.CheckMark,              { 1.00, 0.80, 1.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.SliderGrab,             { 0.95, 0.75, 0.95, 1.00 } )
-        imgui.PushStyleColor( imgui_col.SliderGrabActive,       { 1.00, 0.80, 1.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Button,                 { 0.60, 0.40, 0.60, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ButtonHovered,          { 0.70, 0.50, 0.70, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ButtonActive,           { 0.80, 0.60, 0.80, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Tab,                    { 0.50, 0.30, 0.50, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TabHovered,             { 0.70, 0.50, 0.70, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TabActive,              { 0.70, 0.50, 0.70, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Header,                 { 1.00, 0.80, 1.00, 0.40 } )
-        imgui.PushStyleColor( imgui_col.HeaderHovered,          { 1.00, 0.80, 1.00, 0.50 } )
-        imgui.PushStyleColor( imgui_col.HeaderActive,           { 1.00, 0.80, 1.00, 0.54 } )
-        imgui.PushStyleColor( imgui_col.Separator,              { 1.00, 0.80, 1.00, 0.30 } )
-        imgui.PushStyleColor( imgui_col.Text,                   { 1.00, 1.00, 1.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TextSelectedBg,         { 1.00, 0.80, 1.00, 0.40 } )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrab,          { 0.60, 0.40, 0.60, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   { 0.70, 0.50, 0.70, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    { 0.80, 0.60, 0.80, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotLines,              { 1.00, 0.80, 1.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotLinesHovered,       { 1.00, 0.70, 0.30, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotHistogram,          { 1.00, 0.80, 1.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   { 1.00, 0.70, 0.30, 1.00 } )
-    elseif colorTheme == "Strawberry" then
-        imgui.PushStyleColor( imgui_col.WindowBg,               { 0.00, 0.00, 0.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Border,                 { 1.00, 0.81, 0.88, 0.30 } )
-        imgui.PushStyleColor( imgui_col.FrameBg,                { 0.28, 0.14, 0.24, 1.00 } )
-        imgui.PushStyleColor( imgui_col.FrameBgHovered,         { 0.38, 0.24, 0.34, 1.00 } )
-        imgui.PushStyleColor( imgui_col.FrameBgActive,          { 0.43, 0.29, 0.39, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TitleBg,                { 0.65, 0.41, 0.48, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TitleBgActive,          { 0.75, 0.51, 0.58, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       { 0.75, 0.51, 0.58, 0.50 } )
-        imgui.PushStyleColor( imgui_col.CheckMark,              { 1.00, 0.81, 0.88, 1.00 } )
-        imgui.PushStyleColor( imgui_col.SliderGrab,             { 0.75, 0.56, 0.63, 1.00 } )
-        imgui.PushStyleColor( imgui_col.SliderGrabActive,       { 0.80, 0.61, 0.68, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Button,                 { 0.50, 0.31, 0.38, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ButtonHovered,          { 0.60, 0.41, 0.48, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ButtonActive,           { 0.70, 0.51, 0.58, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Tab,                    { 0.50, 0.31, 0.38, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TabHovered,             { 0.75, 0.51, 0.58, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TabActive,              { 0.75, 0.51, 0.58, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Header,                 { 1.00, 0.81, 0.88, 0.40 } )
-        imgui.PushStyleColor( imgui_col.HeaderHovered,          { 1.00, 0.81, 0.88, 0.50 } )
-        imgui.PushStyleColor( imgui_col.HeaderActive,           { 1.00, 0.81, 0.88, 0.54 } )
-        imgui.PushStyleColor( imgui_col.Separator,              { 1.00, 0.81, 0.88, 0.30 } )
-        imgui.PushStyleColor( imgui_col.Text,                   { 1.00, 1.00, 1.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TextSelectedBg,         { 1.00, 0.81, 0.88, 0.40 } )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrab,          { 0.50, 0.31, 0.38, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   { 0.60, 0.41, 0.48, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    { 0.70, 0.51, 0.58, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotLines,              { 0.61, 0.61, 0.61, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotLinesHovered,       { 1.00, 0.43, 0.35, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotHistogram,          { 0.90, 0.70, 0.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   { 1.00, 0.60, 0.00, 1.00 } )
-    elseif colorTheme == "Tree" then
-        imgui.PushStyleColor( imgui_col.WindowBg,               { 0.20, 0.16, 0.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Border,                 { 0.81, 0.90, 0.00, 0.30 } )
-        imgui.PushStyleColor( imgui_col.FrameBg,                { 0.40, 0.40, 0.20, 1.00 } )
-        imgui.PushStyleColor( imgui_col.FrameBgHovered,         { 0.50, 0.50, 0.30, 1.00 } )
-        imgui.PushStyleColor( imgui_col.FrameBgActive,          { 0.55, 0.55, 0.35, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TitleBg,                { 0.35, 0.31, 0.11, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TitleBgActive,          { 0.45, 0.41, 0.21, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       { 0.45, 0.41, 0.21, 0.50 } )
-        imgui.PushStyleColor( imgui_col.CheckMark,              { 1.00, 1.00, 0.80, 1.00 } )
-        imgui.PushStyleColor( imgui_col.SliderGrab,             { 0.95, 0.95, 0.75, 1.00 } )
-        imgui.PushStyleColor( imgui_col.SliderGrabActive,       { 1.00, 1.00, 0.80, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Button,                 { 0.60, 0.60, 0.40, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ButtonHovered,          { 0.70, 0.70, 0.50, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ButtonActive,           { 0.80, 0.80, 0.60, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Tab,                    { 0.50, 0.50, 0.30, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TabHovered,             { 0.70, 0.70, 0.50, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TabActive,              { 0.70, 0.70, 0.50, 1.00 } )
-        imgui.PushStyleColor( imgui_col.Header,                 { 1.00, 1.00, 0.80, 0.40 } )
-        imgui.PushStyleColor( imgui_col.HeaderHovered,          { 1.00, 1.00, 0.80, 0.50 } )
-        imgui.PushStyleColor( imgui_col.HeaderActive,           { 1.00, 1.00, 0.80, 0.54 } )
-        imgui.PushStyleColor( imgui_col.Separator,              { 1.00, 1.00, 0.80, 0.30 } )
-        imgui.PushStyleColor( imgui_col.Text,                   { 1.00, 1.00, 1.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.TextSelectedBg,         { 1.00, 1.00, 0.80, 0.40 } )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrab,          { 0.60, 0.60, 0.40, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   { 0.70, 0.70, 0.50, 1.00 } )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    { 0.80, 0.80, 0.60, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotLines,              { 1.00, 1.00, 0.80, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotLinesHovered,       { 0.30, 1.00, 0.70, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotHistogram,          { 1.00, 1.00, 0.80, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   { 0.30, 1.00, 0.70, 1.00 } )
-    elseif colorTheme == "Incognito" then
-        local black = {0.00, 0.00, 0.00, 1.00}
-        local white = {1.00, 1.00, 1.00, 1.00}
-        local grey = {0.20, 0.20, 0.20, 1.00}
-        local whiteTint = {1.00, 1.00, 1.00, 0.40}
-        local red = {1.00, 0.00, 0.00, 1.00}
-        
-        imgui.PushStyleColor( imgui_col.WindowBg,               black     )
-        imgui.PushStyleColor( imgui_col.Border,                 whiteTint )
-        imgui.PushStyleColor( imgui_col.FrameBg,                grey      )
-        imgui.PushStyleColor( imgui_col.FrameBgHovered,         whiteTint )
-        imgui.PushStyleColor( imgui_col.FrameBgActive,          whiteTint )
-        imgui.PushStyleColor( imgui_col.TitleBg,                grey      )
-        imgui.PushStyleColor( imgui_col.TitleBgActive,          grey      )
-        imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       black     )
-        imgui.PushStyleColor( imgui_col.CheckMark,              white     )
-        imgui.PushStyleColor( imgui_col.SliderGrab,             grey      )
-        imgui.PushStyleColor( imgui_col.SliderGrabActive,       whiteTint )
-        imgui.PushStyleColor( imgui_col.Button,                 grey      )
-        imgui.PushStyleColor( imgui_col.ButtonHovered,          whiteTint )
-        imgui.PushStyleColor( imgui_col.ButtonActive,           whiteTint )
-        imgui.PushStyleColor( imgui_col.Tab,                    grey      )
-        imgui.PushStyleColor( imgui_col.TabHovered,             whiteTint )
-        imgui.PushStyleColor( imgui_col.TabActive,              whiteTint )
-        imgui.PushStyleColor( imgui_col.Header,                 grey      )
-        imgui.PushStyleColor( imgui_col.HeaderHovered,          whiteTint )
-        imgui.PushStyleColor( imgui_col.HeaderActive,           whiteTint )
-        imgui.PushStyleColor( imgui_col.Separator,              whiteTint )
-        imgui.PushStyleColor( imgui_col.Text,                   white     )
-        imgui.PushStyleColor( imgui_col.TextSelectedBg,         whiteTint )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrab,          whiteTint )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   white     )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    white     )
-        imgui.PushStyleColor( imgui_col.PlotLines,              white     )
-        imgui.PushStyleColor( imgui_col.PlotLinesHovered,       red       )
-        imgui.PushStyleColor( imgui_col.PlotHistogram,          white     )
-        imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   red       )
-    elseif colorTheme == "Incognito + RGB" then
-        local black = {0.00, 0.00, 0.00, 1.00}
-        local white = {1.00, 1.00, 1.00, 1.00}
-        local grey = {0.20, 0.20, 0.20, 1.00}
-        local whiteTint = {1.00, 1.00, 1.00, 0.40}
-        local currentRGB = getCurrentRGBColors(globalVars.rgbPeriod)
-        local rgbColor = {currentRGB.red, currentRGB.green, currentRGB.blue, 0.8}
-        
-        imgui.PushStyleColor( imgui_col.WindowBg,               black     )
-        imgui.PushStyleColor( imgui_col.Border,                 rgbColor  )
-        imgui.PushStyleColor( imgui_col.FrameBg,                grey      )
-        imgui.PushStyleColor( imgui_col.FrameBgHovered,         whiteTint )
-        imgui.PushStyleColor( imgui_col.FrameBgActive,          rgbColor  )
-        imgui.PushStyleColor( imgui_col.TitleBg,                grey      )
-        imgui.PushStyleColor( imgui_col.TitleBgActive,          grey      )
-        imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       black     )
-        imgui.PushStyleColor( imgui_col.CheckMark,              white     )
-        imgui.PushStyleColor( imgui_col.SliderGrab,             grey      )
-        imgui.PushStyleColor( imgui_col.SliderGrabActive,       rgbColor  )
-        imgui.PushStyleColor( imgui_col.Button,                 grey      )
-        imgui.PushStyleColor( imgui_col.ButtonHovered,          whiteTint )
-        imgui.PushStyleColor( imgui_col.ButtonActive,           rgbColor  )
-        imgui.PushStyleColor( imgui_col.Tab,                    grey      )
-        imgui.PushStyleColor( imgui_col.TabHovered,             whiteTint )
-        imgui.PushStyleColor( imgui_col.TabActive,              rgbColor  )
-        imgui.PushStyleColor( imgui_col.Header,                 grey      )
-        imgui.PushStyleColor( imgui_col.HeaderHovered,          whiteTint )
-        imgui.PushStyleColor( imgui_col.HeaderActive,           rgbColor  )
-        imgui.PushStyleColor( imgui_col.Separator,              rgbColor  )
-        imgui.PushStyleColor( imgui_col.Text,                   white     )
-        imgui.PushStyleColor( imgui_col.TextSelectedBg,         rgbColor  )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrab,          whiteTint )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   white     )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    rgbColor  )
-        imgui.PushStyleColor( imgui_col.PlotLines,              white     )
-        imgui.PushStyleColor( imgui_col.PlotLinesHovered,       rgbColor  )
-        imgui.PushStyleColor( imgui_col.PlotHistogram,          white     )
-        imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   rgbColor  )
-    elseif colorTheme == "Glass" then
-        local transparent = {0.00, 0.00, 0.00, 0.25}
-        local transparentWhite = {1.00, 1.00, 1.00, 0.70}
-        local whiteTint = {1.00, 1.00, 1.00, 0.30}
-        local white = {1.00, 1.00, 1.00, 1.00}
-        
-        imgui.PushStyleColor( imgui_col.WindowBg,               transparent      )
-        imgui.PushStyleColor( imgui_col.Border,                 transparentWhite )
-        imgui.PushStyleColor( imgui_col.FrameBg,                transparent      )
-        imgui.PushStyleColor( imgui_col.FrameBgHovered,         whiteTint        )
-        imgui.PushStyleColor( imgui_col.FrameBgActive,          whiteTint        )
-        imgui.PushStyleColor( imgui_col.TitleBg,                transparent      )
-        imgui.PushStyleColor( imgui_col.TitleBgActive,          transparent      )
-        imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       transparent      )
-        imgui.PushStyleColor( imgui_col.CheckMark,              transparentWhite )
-        imgui.PushStyleColor( imgui_col.SliderGrab,             whiteTint        )
-        imgui.PushStyleColor( imgui_col.SliderGrabActive,       transparentWhite )
-        imgui.PushStyleColor( imgui_col.Button,                 transparent      )
-        imgui.PushStyleColor( imgui_col.ButtonHovered,          whiteTint        )
-        imgui.PushStyleColor( imgui_col.ButtonActive,           whiteTint        )
-        imgui.PushStyleColor( imgui_col.Tab,                    transparent      )
-        imgui.PushStyleColor( imgui_col.TabHovered,             whiteTint        )
-        imgui.PushStyleColor( imgui_col.TabActive,              whiteTint        )
-        imgui.PushStyleColor( imgui_col.Header,                 transparent      )
-        imgui.PushStyleColor( imgui_col.HeaderHovered,          whiteTint        )
-        imgui.PushStyleColor( imgui_col.HeaderActive,           whiteTint        )
-        imgui.PushStyleColor( imgui_col.Separator,              whiteTint        )
-        imgui.PushStyleColor( imgui_col.Text,                   white            )
-        imgui.PushStyleColor( imgui_col.TextSelectedBg,         whiteTint        )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrab,          whiteTint        )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   transparentWhite )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    transparentWhite )
-        imgui.PushStyleColor( imgui_col.PlotLines,              whiteTint        )
-        imgui.PushStyleColor( imgui_col.PlotLinesHovered,       transparentWhite )
-        imgui.PushStyleColor( imgui_col.PlotHistogram,          whiteTint        )
-        imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   transparentWhite )
-    elseif colorTheme == "Glass + RGB" then
-        local currentRGB = getCurrentRGBColors(globalVars.rgbPeriod)
-        local activeColor = {currentRGB.red, currentRGB.green, currentRGB.blue, 0.8}
-        local colorTint = {currentRGB.red, currentRGB.green, currentRGB.blue, 0.3}
-        local transparent = {0.00, 0.00, 0.00, 0.25}
-        local white = {1.00, 1.00, 1.00, 1.00}
-        
-        imgui.PushStyleColor( imgui_col.WindowBg,               transparent )
-        imgui.PushStyleColor( imgui_col.Border,                 activeColor )
-        imgui.PushStyleColor( imgui_col.FrameBg,                transparent )
-        imgui.PushStyleColor( imgui_col.FrameBgHovered,         colorTint   )
-        imgui.PushStyleColor( imgui_col.FrameBgActive,          colorTint   )
-        imgui.PushStyleColor( imgui_col.TitleBg,                transparent )
-        imgui.PushStyleColor( imgui_col.TitleBgActive,          transparent )
-        imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       transparent )
-        imgui.PushStyleColor( imgui_col.CheckMark,              activeColor )
-        imgui.PushStyleColor( imgui_col.SliderGrab,             colorTint   )
-        imgui.PushStyleColor( imgui_col.SliderGrabActive,       activeColor )
-        imgui.PushStyleColor( imgui_col.Button,                 transparent )
-        imgui.PushStyleColor( imgui_col.ButtonHovered,          colorTint   )
-        imgui.PushStyleColor( imgui_col.ButtonActive,           colorTint   )
-        imgui.PushStyleColor( imgui_col.Tab,                    transparent )
-        imgui.PushStyleColor( imgui_col.TabHovered,             colorTint   )
-        imgui.PushStyleColor( imgui_col.TabActive,              colorTint   )
-        imgui.PushStyleColor( imgui_col.Header,                 transparent )
-        imgui.PushStyleColor( imgui_col.HeaderHovered,          colorTint   ) 
-        imgui.PushStyleColor( imgui_col.HeaderActive,           colorTint   )
-        imgui.PushStyleColor( imgui_col.Separator,              colorTint   )
-        imgui.PushStyleColor( imgui_col.Text,                   white       )
-        imgui.PushStyleColor( imgui_col.TextSelectedBg,         colorTint   )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrab,          colorTint   )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   activeColor )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    activeColor )
-        imgui.PushStyleColor( imgui_col.PlotLines,              activeColor )
-        imgui.PushStyleColor( imgui_col.PlotLinesHovered,       colorTint   )
-        imgui.PushStyleColor( imgui_col.PlotHistogram,          activeColor )
-        imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   colorTint   )
-    elseif colorTheme == "RGB Gamer Mode" then
-        local currentRGB = getCurrentRGBColors(globalVars.rgbPeriod)
-        local activeColor = {currentRGB.red, currentRGB.green, currentRGB.blue, 0.8}
-        local inactiveColor = {currentRGB.red, currentRGB.green, currentRGB.blue, 0.5}
-        local white = {1.00, 1.00, 1.00, 1.00}
-        local clearWhite = {1.00, 1.00, 1.00, 0.40}
-        local black = {0.00, 0.00, 0.00, 1.00}
-        
-        imgui.PushStyleColor( imgui_col.WindowBg,               black         )
-        imgui.PushStyleColor( imgui_col.Border,                 inactiveColor )
-        imgui.PushStyleColor( imgui_col.FrameBg,                inactiveColor )
-        imgui.PushStyleColor( imgui_col.FrameBgHovered,         activeColor   )
-        imgui.PushStyleColor( imgui_col.FrameBgActive,          activeColor   )
-        imgui.PushStyleColor( imgui_col.TitleBg,                inactiveColor )
-        imgui.PushStyleColor( imgui_col.TitleBgActive,          activeColor   )
-        imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       inactiveColor )
-        imgui.PushStyleColor( imgui_col.CheckMark,              white         )
-        imgui.PushStyleColor( imgui_col.SliderGrab,             activeColor   )
-        imgui.PushStyleColor( imgui_col.SliderGrabActive,       white         )
-        imgui.PushStyleColor( imgui_col.Button,                 inactiveColor )
-        imgui.PushStyleColor( imgui_col.ButtonHovered,          activeColor   )
-        imgui.PushStyleColor( imgui_col.ButtonActive,           activeColor   )
-        imgui.PushStyleColor( imgui_col.Tab,                    inactiveColor )
-        imgui.PushStyleColor( imgui_col.TabHovered,             activeColor   )
-        imgui.PushStyleColor( imgui_col.TabActive,              activeColor   )
-        imgui.PushStyleColor( imgui_col.Header,                 inactiveColor )
-        imgui.PushStyleColor( imgui_col.HeaderHovered,          inactiveColor )
-        imgui.PushStyleColor( imgui_col.HeaderActive,           activeColor   )
-        imgui.PushStyleColor( imgui_col.Separator,              inactiveColor )
-        imgui.PushStyleColor( imgui_col.Text,                   white         )
-        imgui.PushStyleColor( imgui_col.TextSelectedBg,         clearWhite    )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrab,          inactiveColor )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   activeColor   )
-        imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    activeColor   )
-        imgui.PushStyleColor( imgui_col.PlotLines,              { 0.61, 0.61, 0.61, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotLinesHovered,       { 1.00, 0.43, 0.35, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotHistogram,          { 0.90, 0.70, 0.00, 1.00 } )
-        imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   { 1.00, 0.60, 0.00, 1.00 } )
-    end
+--    rgbPeriod  : the length in seconds of one RGB color cycle [Int/Float]
+function setPluginAppearanceColors(colorTheme, rgbPeriod)
+    if colorTheme == "Amethyst"        then setAmethystColors() end
+    if colorTheme == "Strawberry"      then setStrawberryColors() end
+    if colorTheme == "Tree"            then setTreeColors() end
+    if colorTheme == "Incognito"       then setIncognitoColors() end
+    if colorTheme == "Incognito + RGB" then setIncognitoRGBColors(rgbPeriod) end
+    if colorTheme == "Glass"           then setGlassColors() end
+    if colorTheme == "Glass + RGB"     then setGlassRGBColors(rgbPeriod) end
+    if colorTheme == "RGB Gamer Mode"  then setRGBGamerColors(rgbPeriod) end
+end
+-- Sets plugin colors to the "Amethyst" theme 
+function setAmethystColors()
+    imgui.PushStyleColor( imgui_col.WindowBg,               { 0.16, 0.00, 0.20, 1.00 } )
+    imgui.PushStyleColor( imgui_col.Border,                 { 0.90, 0.00, 0.81, 0.30 } )
+    imgui.PushStyleColor( imgui_col.FrameBg,                { 0.40, 0.20, 0.40, 1.00 } )
+    imgui.PushStyleColor( imgui_col.FrameBgHovered,         { 0.50, 0.30, 0.50, 1.00 } )
+    imgui.PushStyleColor( imgui_col.FrameBgActive,          { 0.55, 0.35, 0.55, 1.00 } )
+    imgui.PushStyleColor( imgui_col.TitleBg,                { 0.31, 0.11, 0.35, 1.00 } )
+    imgui.PushStyleColor( imgui_col.TitleBgActive,          { 0.41, 0.21, 0.45, 1.00 } )
+    imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       { 0.41, 0.21, 0.45, 0.50 } )
+    imgui.PushStyleColor( imgui_col.CheckMark,              { 1.00, 0.80, 1.00, 1.00 } )
+    imgui.PushStyleColor( imgui_col.SliderGrab,             { 0.95, 0.75, 0.95, 1.00 } )
+    imgui.PushStyleColor( imgui_col.SliderGrabActive,       { 1.00, 0.80, 1.00, 1.00 } )
+    imgui.PushStyleColor( imgui_col.Button,                 { 0.60, 0.40, 0.60, 1.00 } )
+    imgui.PushStyleColor( imgui_col.ButtonHovered,          { 0.70, 0.50, 0.70, 1.00 } )
+    imgui.PushStyleColor( imgui_col.ButtonActive,           { 0.80, 0.60, 0.80, 1.00 } )
+    imgui.PushStyleColor( imgui_col.Tab,                    { 0.50, 0.30, 0.50, 1.00 } )
+    imgui.PushStyleColor( imgui_col.TabHovered,             { 0.70, 0.50, 0.70, 1.00 } )
+    imgui.PushStyleColor( imgui_col.TabActive,              { 0.70, 0.50, 0.70, 1.00 } )
+    imgui.PushStyleColor( imgui_col.Header,                 { 1.00, 0.80, 1.00, 0.40 } )
+    imgui.PushStyleColor( imgui_col.HeaderHovered,          { 1.00, 0.80, 1.00, 0.50 } )
+    imgui.PushStyleColor( imgui_col.HeaderActive,           { 1.00, 0.80, 1.00, 0.54 } )
+    imgui.PushStyleColor( imgui_col.Separator,              { 1.00, 0.80, 1.00, 0.30 } )
+    imgui.PushStyleColor( imgui_col.Text,                   { 1.00, 1.00, 1.00, 1.00 } )
+    imgui.PushStyleColor( imgui_col.TextSelectedBg,         { 1.00, 0.80, 1.00, 0.40 } )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrab,          { 0.60, 0.40, 0.60, 1.00 } )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   { 0.70, 0.50, 0.70, 1.00 } )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    { 0.80, 0.60, 0.80, 1.00 } )
+    imgui.PushStyleColor( imgui_col.PlotLines,              { 1.00, 0.80, 1.00, 1.00 } )
+    imgui.PushStyleColor( imgui_col.PlotLinesHovered,       { 1.00, 0.70, 0.30, 1.00 } )
+    imgui.PushStyleColor( imgui_col.PlotHistogram,          { 1.00, 0.80, 1.00, 1.00 } )
+    imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   { 1.00, 0.70, 0.30, 1.00 } )
+end
+-- Sets plugin colors to the "Strawberry" theme 
+function setStrawberryColors()
+    imgui.PushStyleColor( imgui_col.WindowBg,               { 0.00, 0.00, 0.00, 1.00 } )
+    imgui.PushStyleColor( imgui_col.Border,                 { 1.00, 0.81, 0.88, 0.30 } )
+    imgui.PushStyleColor( imgui_col.FrameBg,                { 0.28, 0.14, 0.24, 1.00 } )
+    imgui.PushStyleColor( imgui_col.FrameBgHovered,         { 0.38, 0.24, 0.34, 1.00 } )
+    imgui.PushStyleColor( imgui_col.FrameBgActive,          { 0.43, 0.29, 0.39, 1.00 } )
+    imgui.PushStyleColor( imgui_col.TitleBg,                { 0.65, 0.41, 0.48, 1.00 } )
+    imgui.PushStyleColor( imgui_col.TitleBgActive,          { 0.75, 0.51, 0.58, 1.00 } )
+    imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       { 0.75, 0.51, 0.58, 0.50 } )
+    imgui.PushStyleColor( imgui_col.CheckMark,              { 1.00, 0.81, 0.88, 1.00 } )
+    imgui.PushStyleColor( imgui_col.SliderGrab,             { 0.75, 0.56, 0.63, 1.00 } )
+    imgui.PushStyleColor( imgui_col.SliderGrabActive,       { 0.80, 0.61, 0.68, 1.00 } )
+    imgui.PushStyleColor( imgui_col.Button,                 { 0.50, 0.31, 0.38, 1.00 } )
+    imgui.PushStyleColor( imgui_col.ButtonHovered,          { 0.60, 0.41, 0.48, 1.00 } )
+    imgui.PushStyleColor( imgui_col.ButtonActive,           { 0.70, 0.51, 0.58, 1.00 } )
+    imgui.PushStyleColor( imgui_col.Tab,                    { 0.50, 0.31, 0.38, 1.00 } )
+    imgui.PushStyleColor( imgui_col.TabHovered,             { 0.75, 0.51, 0.58, 1.00 } )
+    imgui.PushStyleColor( imgui_col.TabActive,              { 0.75, 0.51, 0.58, 1.00 } )
+    imgui.PushStyleColor( imgui_col.Header,                 { 1.00, 0.81, 0.88, 0.40 } )
+    imgui.PushStyleColor( imgui_col.HeaderHovered,          { 1.00, 0.81, 0.88, 0.50 } )
+    imgui.PushStyleColor( imgui_col.HeaderActive,           { 1.00, 0.81, 0.88, 0.54 } )
+    imgui.PushStyleColor( imgui_col.Separator,              { 1.00, 0.81, 0.88, 0.30 } )
+    imgui.PushStyleColor( imgui_col.Text,                   { 1.00, 1.00, 1.00, 1.00 } )
+    imgui.PushStyleColor( imgui_col.TextSelectedBg,         { 1.00, 0.81, 0.88, 0.40 } )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrab,          { 0.50, 0.31, 0.38, 1.00 } )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   { 0.60, 0.41, 0.48, 1.00 } )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    { 0.70, 0.51, 0.58, 1.00 } )
+    imgui.PushStyleColor( imgui_col.PlotLines,              { 0.61, 0.61, 0.61, 1.00 } )
+    imgui.PushStyleColor( imgui_col.PlotLinesHovered,       { 1.00, 0.43, 0.35, 1.00 } )
+    imgui.PushStyleColor( imgui_col.PlotHistogram,          { 0.90, 0.70, 0.00, 1.00 } )
+    imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   { 1.00, 0.60, 0.00, 1.00 } )
+end
+-- Sets plugin colors to the "Tree" theme 
+function setTreeColors()
+    imgui.PushStyleColor( imgui_col.WindowBg,               { 0.20, 0.16, 0.00, 1.00 } )
+    imgui.PushStyleColor( imgui_col.Border,                 { 0.81, 0.90, 0.00, 0.30 } )
+    imgui.PushStyleColor( imgui_col.FrameBg,                { 0.40, 0.40, 0.20, 1.00 } )
+    imgui.PushStyleColor( imgui_col.FrameBgHovered,         { 0.50, 0.50, 0.30, 1.00 } )
+    imgui.PushStyleColor( imgui_col.FrameBgActive,          { 0.55, 0.55, 0.35, 1.00 } )
+    imgui.PushStyleColor( imgui_col.TitleBg,                { 0.35, 0.31, 0.11, 1.00 } )
+    imgui.PushStyleColor( imgui_col.TitleBgActive,          { 0.45, 0.41, 0.21, 1.00 } )
+    imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       { 0.45, 0.41, 0.21, 0.50 } )
+    imgui.PushStyleColor( imgui_col.CheckMark,              { 1.00, 1.00, 0.80, 1.00 } )
+    imgui.PushStyleColor( imgui_col.SliderGrab,             { 0.95, 0.95, 0.75, 1.00 } )
+    imgui.PushStyleColor( imgui_col.SliderGrabActive,       { 1.00, 1.00, 0.80, 1.00 } )
+    imgui.PushStyleColor( imgui_col.Button,                 { 0.60, 0.60, 0.40, 1.00 } )
+    imgui.PushStyleColor( imgui_col.ButtonHovered,          { 0.70, 0.70, 0.50, 1.00 } )
+    imgui.PushStyleColor( imgui_col.ButtonActive,           { 0.80, 0.80, 0.60, 1.00 } )
+    imgui.PushStyleColor( imgui_col.Tab,                    { 0.50, 0.50, 0.30, 1.00 } )
+    imgui.PushStyleColor( imgui_col.TabHovered,             { 0.70, 0.70, 0.50, 1.00 } )
+    imgui.PushStyleColor( imgui_col.TabActive,              { 0.70, 0.70, 0.50, 1.00 } )
+    imgui.PushStyleColor( imgui_col.Header,                 { 1.00, 1.00, 0.80, 0.40 } )
+    imgui.PushStyleColor( imgui_col.HeaderHovered,          { 1.00, 1.00, 0.80, 0.50 } )
+    imgui.PushStyleColor( imgui_col.HeaderActive,           { 1.00, 1.00, 0.80, 0.54 } )
+    imgui.PushStyleColor( imgui_col.Separator,              { 1.00, 1.00, 0.80, 0.30 } )
+    imgui.PushStyleColor( imgui_col.Text,                   { 1.00, 1.00, 1.00, 1.00 } )
+    imgui.PushStyleColor( imgui_col.TextSelectedBg,         { 1.00, 1.00, 0.80, 0.40 } )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrab,          { 0.60, 0.60, 0.40, 1.00 } )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   { 0.70, 0.70, 0.50, 1.00 } )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    { 0.80, 0.80, 0.60, 1.00 } )
+    imgui.PushStyleColor( imgui_col.PlotLines,              { 1.00, 1.00, 0.80, 1.00 } )
+    imgui.PushStyleColor( imgui_col.PlotLinesHovered,       { 0.30, 1.00, 0.70, 1.00 } )
+    imgui.PushStyleColor( imgui_col.PlotHistogram,          { 1.00, 1.00, 0.80, 1.00 } )
+    imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   { 0.30, 1.00, 0.70, 1.00 } )
+end
+-- Sets plugin colors to the "Incognito" theme 
+function setIncognitoColors()
+    local black = {0.00, 0.00, 0.00, 1.00}
+    local white = {1.00, 1.00, 1.00, 1.00}
+    local grey = {0.20, 0.20, 0.20, 1.00}
+    local whiteTint = {1.00, 1.00, 1.00, 0.40}
+    local red = {1.00, 0.00, 0.00, 1.00}
+    
+    imgui.PushStyleColor( imgui_col.WindowBg,               black     )
+    imgui.PushStyleColor( imgui_col.Border,                 whiteTint )
+    imgui.PushStyleColor( imgui_col.FrameBg,                grey      )
+    imgui.PushStyleColor( imgui_col.FrameBgHovered,         whiteTint )
+    imgui.PushStyleColor( imgui_col.FrameBgActive,          whiteTint )
+    imgui.PushStyleColor( imgui_col.TitleBg,                grey      )
+    imgui.PushStyleColor( imgui_col.TitleBgActive,          grey      )
+    imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       black     )
+    imgui.PushStyleColor( imgui_col.CheckMark,              white     )
+    imgui.PushStyleColor( imgui_col.SliderGrab,             grey      )
+    imgui.PushStyleColor( imgui_col.SliderGrabActive,       whiteTint )
+    imgui.PushStyleColor( imgui_col.Button,                 grey      )
+    imgui.PushStyleColor( imgui_col.ButtonHovered,          whiteTint )
+    imgui.PushStyleColor( imgui_col.ButtonActive,           whiteTint )
+    imgui.PushStyleColor( imgui_col.Tab,                    grey      )
+    imgui.PushStyleColor( imgui_col.TabHovered,             whiteTint )
+    imgui.PushStyleColor( imgui_col.TabActive,              whiteTint )
+    imgui.PushStyleColor( imgui_col.Header,                 grey      )
+    imgui.PushStyleColor( imgui_col.HeaderHovered,          whiteTint )
+    imgui.PushStyleColor( imgui_col.HeaderActive,           whiteTint )
+    imgui.PushStyleColor( imgui_col.Separator,              whiteTint )
+    imgui.PushStyleColor( imgui_col.Text,                   white     )
+    imgui.PushStyleColor( imgui_col.TextSelectedBg,         whiteTint )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrab,          whiteTint )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   white     )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    white     )
+    imgui.PushStyleColor( imgui_col.PlotLines,              white     )
+    imgui.PushStyleColor( imgui_col.PlotLinesHovered,       red       )
+    imgui.PushStyleColor( imgui_col.PlotHistogram,          white     )
+    imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   red       )
+end
+-- Sets plugin colors to the "Incognito + RGB" theme 
+-- Parameters
+--    rgbPeriod : the length in seconds of one RGB color cycle [Int/Float]
+function setIncognitoRGBColors(rgbPeriod)
+local black = {0.00, 0.00, 0.00, 1.00}
+    local white = {1.00, 1.00, 1.00, 1.00}
+    local grey = {0.20, 0.20, 0.20, 1.00}
+    local whiteTint = {1.00, 1.00, 1.00, 0.40}
+    local currentRGB = getCurrentRGBColors(rgbPeriod)
+    local rgbColor = {currentRGB.red, currentRGB.green, currentRGB.blue, 0.8}
+    
+    imgui.PushStyleColor( imgui_col.WindowBg,               black     )
+    imgui.PushStyleColor( imgui_col.Border,                 rgbColor  )
+    imgui.PushStyleColor( imgui_col.FrameBg,                grey      )
+    imgui.PushStyleColor( imgui_col.FrameBgHovered,         whiteTint )
+    imgui.PushStyleColor( imgui_col.FrameBgActive,          rgbColor  )
+    imgui.PushStyleColor( imgui_col.TitleBg,                grey      )
+    imgui.PushStyleColor( imgui_col.TitleBgActive,          grey      )
+    imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       black     )
+    imgui.PushStyleColor( imgui_col.CheckMark,              white     )
+    imgui.PushStyleColor( imgui_col.SliderGrab,             grey      )
+    imgui.PushStyleColor( imgui_col.SliderGrabActive,       rgbColor  )
+    imgui.PushStyleColor( imgui_col.Button,                 grey      )
+    imgui.PushStyleColor( imgui_col.ButtonHovered,          whiteTint )
+    imgui.PushStyleColor( imgui_col.ButtonActive,           rgbColor  )
+    imgui.PushStyleColor( imgui_col.Tab,                    grey      )
+    imgui.PushStyleColor( imgui_col.TabHovered,             whiteTint )
+    imgui.PushStyleColor( imgui_col.TabActive,              rgbColor  )
+    imgui.PushStyleColor( imgui_col.Header,                 grey      )
+    imgui.PushStyleColor( imgui_col.HeaderHovered,          whiteTint )
+    imgui.PushStyleColor( imgui_col.HeaderActive,           rgbColor  )
+    imgui.PushStyleColor( imgui_col.Separator,              rgbColor  )
+    imgui.PushStyleColor( imgui_col.Text,                   white     )
+    imgui.PushStyleColor( imgui_col.TextSelectedBg,         rgbColor  )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrab,          whiteTint )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   white     )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    rgbColor  )
+    imgui.PushStyleColor( imgui_col.PlotLines,              white     )
+    imgui.PushStyleColor( imgui_col.PlotLinesHovered,       rgbColor  )
+    imgui.PushStyleColor( imgui_col.PlotHistogram,          white     )
+    imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   rgbColor  )
+end
+-- Sets plugin colors to the "Glass" theme 
+function setGlassColors()
+    local transparent = {0.00, 0.00, 0.00, 0.25}
+    local transparentWhite = {1.00, 1.00, 1.00, 0.70}
+    local whiteTint = {1.00, 1.00, 1.00, 0.30}
+    local white = {1.00, 1.00, 1.00, 1.00}
+    
+    imgui.PushStyleColor( imgui_col.WindowBg,               transparent      )
+    imgui.PushStyleColor( imgui_col.Border,                 transparentWhite )
+    imgui.PushStyleColor( imgui_col.FrameBg,                transparent      )
+    imgui.PushStyleColor( imgui_col.FrameBgHovered,         whiteTint        )
+    imgui.PushStyleColor( imgui_col.FrameBgActive,          whiteTint        )
+    imgui.PushStyleColor( imgui_col.TitleBg,                transparent      )
+    imgui.PushStyleColor( imgui_col.TitleBgActive,          transparent      )
+    imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       transparent      )
+    imgui.PushStyleColor( imgui_col.CheckMark,              transparentWhite )
+    imgui.PushStyleColor( imgui_col.SliderGrab,             whiteTint        )
+    imgui.PushStyleColor( imgui_col.SliderGrabActive,       transparentWhite )
+    imgui.PushStyleColor( imgui_col.Button,                 transparent      )
+    imgui.PushStyleColor( imgui_col.ButtonHovered,          whiteTint        )
+    imgui.PushStyleColor( imgui_col.ButtonActive,           whiteTint        )
+    imgui.PushStyleColor( imgui_col.Tab,                    transparent      )
+    imgui.PushStyleColor( imgui_col.TabHovered,             whiteTint        )
+    imgui.PushStyleColor( imgui_col.TabActive,              whiteTint        )
+    imgui.PushStyleColor( imgui_col.Header,                 transparent      )
+    imgui.PushStyleColor( imgui_col.HeaderHovered,          whiteTint        )
+    imgui.PushStyleColor( imgui_col.HeaderActive,           whiteTint        )
+    imgui.PushStyleColor( imgui_col.Separator,              whiteTint        )
+    imgui.PushStyleColor( imgui_col.Text,                   white            )
+    imgui.PushStyleColor( imgui_col.TextSelectedBg,         whiteTint        )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrab,          whiteTint        )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   transparentWhite )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    transparentWhite )
+    imgui.PushStyleColor( imgui_col.PlotLines,              whiteTint        )
+    imgui.PushStyleColor( imgui_col.PlotLinesHovered,       transparentWhite )
+    imgui.PushStyleColor( imgui_col.PlotHistogram,          whiteTint        )
+    imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   transparentWhite )
+end
+-- Sets plugin colors to the "Glass + RGB" theme 
+-- Parameters
+--    rgbPeriod : the length in seconds of one RGB color cycle [Int/Float]
+function setGlassRGBColors(rgbPeriod)
+    local currentRGB = getCurrentRGBColors(rgbPeriod)
+    local activeColor = {currentRGB.red, currentRGB.green, currentRGB.blue, 0.8}
+    local colorTint = {currentRGB.red, currentRGB.green, currentRGB.blue, 0.3}
+    local transparent = {0.00, 0.00, 0.00, 0.25}
+    local white = {1.00, 1.00, 1.00, 1.00}
+    
+    imgui.PushStyleColor( imgui_col.WindowBg,               transparent )
+    imgui.PushStyleColor( imgui_col.Border,                 activeColor )
+    imgui.PushStyleColor( imgui_col.FrameBg,                transparent )
+    imgui.PushStyleColor( imgui_col.FrameBgHovered,         colorTint   )
+    imgui.PushStyleColor( imgui_col.FrameBgActive,          colorTint   )
+    imgui.PushStyleColor( imgui_col.TitleBg,                transparent )
+    imgui.PushStyleColor( imgui_col.TitleBgActive,          transparent )
+    imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       transparent )
+    imgui.PushStyleColor( imgui_col.CheckMark,              activeColor )
+    imgui.PushStyleColor( imgui_col.SliderGrab,             colorTint   )
+    imgui.PushStyleColor( imgui_col.SliderGrabActive,       activeColor )
+    imgui.PushStyleColor( imgui_col.Button,                 transparent )
+    imgui.PushStyleColor( imgui_col.ButtonHovered,          colorTint   )
+    imgui.PushStyleColor( imgui_col.ButtonActive,           colorTint   )
+    imgui.PushStyleColor( imgui_col.Tab,                    transparent )
+    imgui.PushStyleColor( imgui_col.TabHovered,             colorTint   )
+    imgui.PushStyleColor( imgui_col.TabActive,              colorTint   )
+    imgui.PushStyleColor( imgui_col.Header,                 transparent )
+    imgui.PushStyleColor( imgui_col.HeaderHovered,          colorTint   ) 
+    imgui.PushStyleColor( imgui_col.HeaderActive,           colorTint   )
+    imgui.PushStyleColor( imgui_col.Separator,              colorTint   )
+    imgui.PushStyleColor( imgui_col.Text,                   white       )
+    imgui.PushStyleColor( imgui_col.TextSelectedBg,         colorTint   )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrab,          colorTint   )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   activeColor )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    activeColor )
+    imgui.PushStyleColor( imgui_col.PlotLines,              activeColor )
+    imgui.PushStyleColor( imgui_col.PlotLinesHovered,       colorTint   )
+    imgui.PushStyleColor( imgui_col.PlotHistogram,          activeColor )
+    imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   colorTint   )
+end
+-- Sets plugin colors to the "RGB Gamer Mode" theme 
+-- Parameters
+--    rgbPeriod : the length in seconds of one RGB color cycle [Int/Float]
+function setRGBGamerColors(rgbPeriod)
+    local currentRGB = getCurrentRGBColors(rgbPeriod)
+    local activeColor = {currentRGB.red, currentRGB.green, currentRGB.blue, 0.8}
+    local inactiveColor = {currentRGB.red, currentRGB.green, currentRGB.blue, 0.5}
+    local white = {1.00, 1.00, 1.00, 1.00}
+    local clearWhite = {1.00, 1.00, 1.00, 0.40}
+    local black = {0.00, 0.00, 0.00, 1.00}
+    
+    imgui.PushStyleColor( imgui_col.WindowBg,               black         )
+    imgui.PushStyleColor( imgui_col.Border,                 inactiveColor )
+    imgui.PushStyleColor( imgui_col.FrameBg,                inactiveColor )
+    imgui.PushStyleColor( imgui_col.FrameBgHovered,         activeColor   )
+    imgui.PushStyleColor( imgui_col.FrameBgActive,          activeColor   )
+    imgui.PushStyleColor( imgui_col.TitleBg,                inactiveColor )
+    imgui.PushStyleColor( imgui_col.TitleBgActive,          activeColor   )
+    imgui.PushStyleColor( imgui_col.TitleBgCollapsed,       inactiveColor )
+    imgui.PushStyleColor( imgui_col.CheckMark,              white         )
+    imgui.PushStyleColor( imgui_col.SliderGrab,             activeColor   )
+    imgui.PushStyleColor( imgui_col.SliderGrabActive,       white         )
+    imgui.PushStyleColor( imgui_col.Button,                 inactiveColor )
+    imgui.PushStyleColor( imgui_col.ButtonHovered,          activeColor   )
+    imgui.PushStyleColor( imgui_col.ButtonActive,           activeColor   )
+    imgui.PushStyleColor( imgui_col.Tab,                    inactiveColor )
+    imgui.PushStyleColor( imgui_col.TabHovered,             activeColor   )
+    imgui.PushStyleColor( imgui_col.TabActive,              activeColor   )
+    imgui.PushStyleColor( imgui_col.Header,                 inactiveColor )
+    imgui.PushStyleColor( imgui_col.HeaderHovered,          inactiveColor )
+    imgui.PushStyleColor( imgui_col.HeaderActive,           activeColor   )
+    imgui.PushStyleColor( imgui_col.Separator,              inactiveColor )
+    imgui.PushStyleColor( imgui_col.Text,                   white         )
+    imgui.PushStyleColor( imgui_col.TextSelectedBg,         clearWhite    )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrab,          inactiveColor )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrabHovered,   activeColor   )
+    imgui.PushStyleColor( imgui_col.ScrollbarGrabActive,    activeColor   )
+    imgui.PushStyleColor( imgui_col.PlotLines,              { 0.61, 0.61, 0.61, 1.00 } )
+    imgui.PushStyleColor( imgui_col.PlotLinesHovered,       { 1.00, 0.43, 0.35, 1.00 } )
+    imgui.PushStyleColor( imgui_col.PlotHistogram,          { 0.90, 0.70, 0.00, 1.00 } )
+    imgui.PushStyleColor( imgui_col.PlotHistogramHovered,   { 1.00, 0.60, 0.00, 1.00 } )
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -614,10 +630,10 @@ function listShortcuts()
     if not imgui.CollapsingHeader("Key Shortcuts") then return end
     local indentWidth = -6
     imgui.Indent(indentWidth)
-    addSeparator()
+    addPadding()
     imgui.BulletText("T = activate the big button doing stuff")
     toolTip("Use this for a quick workflow")
-    addPadding()
+    addSeparator()
     imgui.BulletText("Ctrl + Shift + Tab = center plugin window")
     toolTip("Useful if the plugin begins or ends up offscreen")
     addSeparator()
@@ -642,7 +658,8 @@ end
 function showInfoLinks()
     if not imgui.CollapsingHeader("Links") then return end
     provideLink("GitHub Repository", "https://github.com/kloi34/VanillaChinchilla")
-    provideLink("Chinchilla Photo", "https://www.facebook.com/cameronschinchillas/photos/a.678128788890667/1876978765672324/")
+    provideLink("Chinchilla Photo", "https://www.facebook.com/cameronschinchillas/photos/"..
+                "a.678128788890667/1876978765672324/")
 end
 -- Lets you choose global plugin appearance settings
 -- Parameters
@@ -670,8 +687,10 @@ end
 --    globalVars : list of variables used globally across all menus [Table]
 function editNotesTab(globalVars)
     chooseEditTool(globalVars)
-    addSeparator()
     local toolName = EDIT_TOOLS[globalVars.editToolIndex]
+    if toolName == "Switch Note Lanes" then switchNoteHelpMarker() end
+    
+    addSeparator()
     if toolName == "Adjust LN Lengths"      then adjustLNLengthsMenu() end
     if toolName == "Shift Notes Left/Right" then shiftLeftRightMenu() end
     if toolName == "Shift Notes Up/Down"    then shiftUpDownMenu() end
@@ -702,18 +721,12 @@ function basicDumpMenu()
     settingsChanged = chooseMSInitial(menuVars) or settingsChanged
     settingsChanged = chooseMSIncrement(menuVars) or settingsChanged
     settingsChanged = chooseNumNotes(menuVars) or settingsChanged
+    updateBasicDumpMenu(settingsChanged, menuVars)  
     
-    if settingsChanged then
-        calculateNoteGaps(menuVars)
-        menuVars.totalDuration = calculateSum(menuVars.noteGaps)
-        menuVars.avgGapRounded = round(menuVars.totalDuration / menuVars.numNotes, 3)
-    end
     saveVariables("basicDumpMenu", menuVars)
     
     addSeparator()
     showDumpInfo(menuVars)
-    
-    imgui.Columns(1)
     
     addSeparator()
     local buttonText = "Place basic dump at current song time"
@@ -723,7 +736,7 @@ end
 function adjustLNLengthsMenu()
     local menuVars = {
         endRadio = false,
-        msToMove = 1
+        msToMove = 50
     }
     getVariables("adjustLNLengthsMenu", menuVars)
     chooseWhichLNEnd(menuVars)
@@ -844,7 +857,10 @@ end
 --    globalVars : list of variables used globally across all menus [Table]
 --    menuVars   : list of variables used for the current menu [Table]
 function button(text, size, func, globalVars, menuVars)
-    if not (imgui.Button(text, size) or utils.IsKeyPressed(keys.T)) then return end
+    if not (imgui.Button(text, size) or utils.IsKeyPressed(keys.T)) then
+        toolTip("Press ' T ' on your keyboard to do the same thing as this button")
+        return
+    end
     if globalVars and menuVars then func(globalVars, menuVars) return end
     if globalVars then func(globalVars) return end
     if menuVars then func(menuVars) return end
@@ -1033,8 +1049,9 @@ end
 --    menuVars : list of variables used for the "Stretch Notes" menu [Table]
 function adjustLNLengths(menuVars)
     local msToMove = menuVars.msToMove
-    local keepLNEndInPlace = menuVars.endRadio
     if msToMove == 0 then return end
+    
+    local keepLNEndInPlace = menuVars.endRadio
     local notesToRemove = state.SelectedHitObjects
     local notesToAdd = {}
     for _, note in pairs(notesToRemove) do
@@ -1096,6 +1113,7 @@ end
 function shiftNotesVertically(menuVars)
     local msToMove = menuVars.msToMove
     if msToMove == 0 then return end
+    
     local notesToRemove = state.SelectedHitObjects
     local notesToAdd = {}
     for _, note in pairs(notesToRemove) do
@@ -1161,6 +1179,17 @@ end
 -- Other Functions --------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 
+-- Updates menu variables for the "Basic Dump" menu
+-- Parameters
+--    settingsChanged : whether or not the settings for the menu have changed [Boolean]
+--    menuVars        : list of variables used for the "Basic Dump" menu [Table]
+function updateBasicDumpMenu(settingsChanged, menuVars)
+    if not settingsChanged then return end
+    
+    calculateNoteGaps(menuVars)
+    menuVars.totalDuration = calculateSum(menuVars.noteGaps)
+    menuVars.avgGapRounded = round(menuVars.totalDuration / menuVars.numNotes, 3)
+end
 -- Calculates the note gaps for a simple dump
 -- Parameters
 --    menuVars : list of variables used for the "Basic Dump" menu [Table]
@@ -1186,6 +1215,7 @@ function showDumpInfo(menuVars)
     imgui.Text(menuVars.totalDuration.." ms")
     imgui.Text(menuVars.noteGaps[#menuVars.noteGaps].." ms")
     imgui.Text(menuVars.avgGapRounded.." ms")
+    imgui.Columns(1)
 end
 -- Creates a button that randomizes new lanes to switch to
 -- Parameters
@@ -1209,10 +1239,10 @@ end
 function displayOldLanesButtons()
     for i = 1, map.GetKeyCount() do
         imgui.Button(i.."##1", LANE_BUTTON_SIZE)
-        imgui.SameLine(0, SAMELINE_SPACING)
+        if i ~= map.GetKeyCount() then
+            imgui.SameLine(0, SAMELINE_SPACING)
+        end
     end
-    helpMarker("Old lane order (top)\nNew lane order (bottom)\nClick on new lane order buttons "..
-               "to switch lanes")
     local indentAmount = (map.GetKeyCount() + 0.7) * LANE_BUTTON_SIZE[1] / 2
     imgui.Indent(indentAmount)
     imgui.Text("V")
@@ -1254,4 +1284,9 @@ function showSwappingLane(menuVars)
     imgui.BeginTooltip()
     imgui.Button(menuVars.newLanes[menuVars.selectedLaneIndexes[1]], LANE_BUTTON_SIZE)
     imgui.EndTooltip()
+end
+-- Creates the switch note lanes tool help marker
+function switchNoteHelpMarker()
+    imgui.SameLine(0, SAMELINE_SPACING)
+    helpMarker("Old lane order (top)\nNew lane order (bottom)\nClick (bottom) buttons to switch")
 end
