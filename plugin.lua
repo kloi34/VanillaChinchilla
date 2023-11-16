@@ -680,7 +680,7 @@ function placeNotesTab(globalVars)
     addSeparator()
     local toolName = PLACE_TOOLS[globalVars.placeToolIndex]
     if toolName == "Basic Dump"      then basicDumpMenu() end
-    if toolName == "Chinchilla Dump" then imgui.Text("Coming soon") end
+    if toolName == "Chinchilla Dump" then imgui.Text("Coming never") end
 end
 -- Creates the "Edit Notes" tab
 -- Parameters
@@ -701,7 +701,7 @@ end
 -- Parameters
 --    globalVars : list of variables used globally across all menus [Table]
 function extrasTab(globalVars)
-    imgui.Text("Coming soon, check back on the GitHub page")
+    imgui.Text("Coming never")
 end
 
 --------------------------------------------------------------------------------------------- Menus
