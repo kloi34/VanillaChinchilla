@@ -9,6 +9,9 @@ The plugin provides various tools to place and edit notes in a variety of ways.
 
 The plugin is still a work in progress, but here's what it can do so far:
 
+### Place Notes
+- Basic Dump
+
 ### Edit Notes
 - Adjust LN Lengths
 - Shift Notes Left/Right
