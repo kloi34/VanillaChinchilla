@@ -1,5 +1,24 @@
--- VanillaChinchilla v1.0 beta
--- by kloi34
+--[[
+VanillaChinchilla v1.0: Quaver plugin for placing/editing notes
+Copyright (C) 2024  kloi34
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+--]]
+
+---------------------------------------------------------------------------------------------------
+-- Plugin Info ------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
 
 -- Many ideas for this plugin were stolen from other plugins that were created by these people:
 ---------------------------------------------------------------------------------------------------
@@ -8,8 +27,6 @@
 ---------------------------------------------------------------------------------------------------
 -- You can find many (but maybe not all) of their plugins on GitHub or Quaver's Steam Workshop.
 
----------------------------------------------------------------------------------------------------
--- Plugin Info ------------------------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 
 -- This is a plugin for Quaver, the ultimate community-driven and open-source competitive
@@ -72,8 +89,8 @@ EDIT_GENERAL_MENUS = {              -- sub-menus within the "Edit Notes (General
     "Shear Note Positions"
 }
 EDIT_LNS_MENUS = {                  -- sub-menus within the "Edit Notes (LNs)" menu
-    "Extend LNs",
-    "Inverse LNs",
+    "Apply Full LN",
+    "Apply Inverse LN",
     "Adjust LN Lengths",
     "Change LNs to Rice"
 }
@@ -106,8 +123,6 @@ STYLE_THEMES = {                    -- available style/appearance themes for the
 
 -- Creates the plugin
 function draw()
-    -- if time in plugin < certain amount then draw chinchilla animation end -- capy
-    
     local globalVars = {
         menuIndex = 1,
         colorThemeIndex = 1,
@@ -124,6 +139,7 @@ function draw()
     setPluginAppearanceColors(globalVars)
     focusWindowOnHotkeyPress()
     centerWindowOnHotkeyPress()
+    drawChinchillaStartupAnimation()
     
     imgui.Begin(PLUGIN_NAME, imgui_window_flags.AlwaysAutoResize)
     imgui.PushItemWidth(DEFAULT_WIDGET_WIDTH)
@@ -229,7 +245,6 @@ end
 
 
 ------------------------------------------------------------------------ Place Notes (From Scratch)
-
 
 
 
@@ -356,29 +371,44 @@ function editNotesLNsMenu(globalVars)
     chooseSubMenu(menuVars, EDIT_LNS_MENUS)
     saveVariables("editLNsMenuVars", menuVars)
     local currentMenu = EDIT_LNS_MENUS[menuVars.subMenuIndex]
-    if currentMenu == "Extend LNs"             then extendLNsMenu() end
-    if currentMenu == "Inverse LNs"            then inverseLNsMenu() end
-    if currentMenu == "Adjust LN Lengths"      then adjustLNLengthsMenu() end
-    if currentMenu == "Change LNs to Rice"     then changeLNsToRiceMenu() end
+    if currentMenu == "Apply Full LN"      then applyFullLNMenu() end
+    if currentMenu == "Apply Inverse LN"   then applyInverseLNMenu() end
+    if currentMenu == "Adjust LN Lengths"  then adjustLNLengthsMenu() end
+    if currentMenu == "Change LNs to Rice" then changeLNsToRiceMenu() end
 end
--- Creates the "Extend LNs" menu
-function extendLNsMenu()
-     imgui.TextWrapped("Coming soon to a chinchilla near you (check back in like a week or so)")
-end
--- Creates the "Inverse LNs" menu
-function inverseLNsMenu()
+-- Creates the "Apply Full LN" menu
+function applyFullLNMenu()
     local settingVars = {
+        beatSnapGap = 4,
         minLNLength = 36,
-        minLNGapLength = 36
+        minLNGapTime = 36
     }
-    getVariables("inverseLNsSettingVars", settingVars)
+    getVariables("applyFullLNSettingVars", settingVars)
+    chooseBeatSnapGap(settingVars)
     chooseMinLNLength(settingVars)
-    chooseMinLNGapLength(settingVars)
-    saveVariables("inverseLNsSettingVars", settingVars)
+    chooseMinLNGapTime(settingVars)
+    saveVariables("applyFullLNSettingVars", settingVars)
+    addSeparator()
+    local buttonText = "Apply full LN mod to selected notes"
+    local minimumNotes = 2
+    simpleActionMenu(buttonText, minimumNotes, applyFullLN, nil, settingVars)
+end
+-- Creates the "Apply Inverse LN" menu
+function applyInverseLNMenu()
+    local settingVars = {
+        beatSnapGap = 4,
+        minLNLength = 36,
+        minLNGapTime = 36
+    }
+    getVariables("applyInverseLNSettingVars", settingVars)
+    chooseBeatSnapGap(settingVars)
+    chooseMinLNLength(settingVars)
+    chooseMinLNGapTime(settingVars)
+    saveVariables("applyInverseLNSettingVars", settingVars)
     addSeparator()
     local buttonText = "Apply inverse LN mod to selected notes"
     local minimumNotes = 2
-    simpleActionMenu(buttonText, minimumNotes, inverseLNs, nil, settingVars)
+    simpleActionMenu(buttonText, minimumNotes, applyInverseLN, nil, settingVars)
 end
 -- Creates the "Adjust LN Lengths" menu
 function adjustLNLengthsMenu()
@@ -488,14 +518,8 @@ end
 function shearNotePositions(settingVars)
     local capy = 0 -- capy
 end
--- Extend selected notes as LNs
-function extendLNs()
-    local capy = 0 -- capy
-end
--- Applies the inverse LN mod onto selected notes
--- Parameters
---    settingVars : list of variables used for the current menu [Table]
-function inverseLNs(settingVars)
+-- Applies the full LN mod onto selected notes
+function applyFullLN(settingVars)
     local totalNumLanes = map.GetKeyCount()
     local notesInLanes = {}
     for lane = 1, totalNumLanes do
@@ -509,6 +533,49 @@ function inverseLNs(settingVars)
     for lane = 1, totalNumLanes do
         local notesInCurrentLane = notesInLanes[lane]
         convertLaneToInverseLN(settingVars, notesToAdd, notesInCurrentLane)
+    end
+    removeAndAddNotes(notesToRemove, notesToAdd)
+end
+-- Converts a single list of notes from the same lane to full LN
+-- Algorithm is based on the inverse LN algorithm in convertLaneToInverseLN()
+-- Parameters
+--    settingVars     : list of variables used for the current menu [Table]
+--    notesToAdd      : list of all notes to add for inverse LN [Table]
+--    notesInSameLane : list of notes in the same lane to convert and add for inverse LN [Table]
+function convertLaneToFullLN(settingVars, notesToAdd, notesInSameLane)
+    if #notesInSameLane == 0 then return end
+    
+    table.sort(notesInSameLane, sortAscendingStartTime)
+    for i = 1, #notesInSameLane - 1 do
+        local currentNote = notesInSameLane[i]
+        local currentNoteTime = currentNote.StartTime
+        local nextNote = notesInSameLane[i + 1]
+        local nextNoteTime = nextNote.StartTime
+        local timeGap = calculateLNGapTime(settingVars, currentNoteTime, nextNoteTime)
+        
+        local newEndTime = nextNoteTime - timeGap
+        local newEndTimeUnacceptable = (newEndTime - currentNoteTime) < settingVars.minLNLength
+        if newEndTimeUnacceptable then newEndTime = 0 end
+        addNoteToList(notesToAdd, currentNote, nil, nil, newEndTime, nil, nil)
+    end
+end
+-- Applies the inverse LN mod onto selected notes
+-- Parameters
+--    settingVars : list of variables used for the current menu [Table]
+function applyInverseLN(settingVars)
+    local totalNumLanes = map.GetKeyCount()
+    local notesInLanes = {}
+    for lane = 1, totalNumLanes do
+        notesInLanes[lane] = {}
+    end
+    local notesToAdd = {}
+    local notesToRemove = state.SelectedHitObjects
+    for _, note in pairs(notesToRemove) do
+        table.insert(notesInLanes[note.Lane], note)
+    end
+    for lane = 1, totalNumLanes do
+        local notesInCurrentLane = notesInLanes[lane]
+        convertLaneToFullLN(settingVars, notesToAdd, notesInCurrentLane)
     end
     removeAndAddNotes(notesToRemove, notesToAdd)
 end
@@ -547,28 +614,17 @@ function convertLaneToInverseLN(settingVars, notesToAdd, notesInSameLane)
     for i = 1, #notesInSameLane - 1 do
         local currentNote = notesInSameLane[i]
         local currentNoteTime = currentNote.StartTime
-        local timingPointAtCurrentNote = map.GetTimingPointAt(currentNoteTime)
-        if timingPointAtCurrentNote == nil then timingPointAtCurrentNote = map.TimingPoints[1] end
-        
         local nextNote = notesInSameLane[i + 1]
         local nextNoteTime = nextNote.StartTime
-        local timingPointAtNextNote = map.GetTimingPointAt(nextNoteTime)
-        if timingPointAtNextNote == nil then timingPointAtNextNote = timingPointAtCurrentNote end
-        
-        -- the larger BPM gives us the shortest duration to use for calculations that are safe
-        local maxBPM = math.max(timingPointAtCurrentNote.Bpm, timingPointAtNextNote.Bpm)
-        local millisecondsInMinute = 60000
-        local oneFourthBeatDivisor = 4
-        local oneFourthBeatDuration = millisecondsInMinute / (oneFourthBeatDivisor * maxBPM)
-        local roundedOneFourthBeatDuration = round(oneFourthBeatDuration, 0)
-        local timeGap = math.max(settingVars.minLNGapLength, roundedOneFourthBeatDuration)
         
         local newStartTime = currentNoteTime
         local newEndTime = nextNoteTime
         local currentNoteIsLN = isLN(currentNote)
         local nextNoteIsLN = isLN(nextNote)
         local isLastInversion = (i == #notesInSameLane - 1)
-        local timeGapNeeded = not nextNoteIsLN or (isLastInversion and nextNoteIsLN) 
+        local timeGapNeeded = not nextNoteIsLN or (isLastInversion and nextNoteIsLN)
+        local timeGap = calculateLNGapTime(settingVars, currentNoteTime, nextNoteTime)
+        
         if currentNoteIsLN then newStartTime = currentNote.EndTime end
         if isLastInversion and (not nextNoteIsLN) then timeGap = 0 end
         if timeGapNeeded then newEndTime = newEndTime - timeGap end
@@ -876,6 +932,28 @@ function addNoteToList(noteList, defaultNote, startTime, lane, endTime, hitSound
                                           newHitSound, newEditorLayer)
     table.insert(noteList, newNote)
 end
+-- Calculates and returns the current note's LN gap time based on the beat snap [Int]
+-- Parameters
+--    settingVars     : list of variables used for the current menu [Table]
+--    currentNoteTime : millisecond time of the current note [Int]
+--    nextNoteTime    : millisecond time of the next note [Int]
+function calculateLNGapTime(settingVars, currentNoteTime, nextNoteTime)
+        local beatSnap = settingVars.beatSnapGap
+        if beatSnap == 0 then return settingVars.minLNGapTime end
+        
+        local timingPointAtCurrentNote = map.GetTimingPointAt(currentNoteTime)
+        if timingPointAtCurrentNote == nil then timingPointAtCurrentNote = map.TimingPoints[1] end
+        local timingPointAtNextNote = map.GetTimingPointAt(nextNoteTime)
+        if timingPointAtNextNote == nil then timingPointAtNextNote = timingPointAtCurrentNote end
+        
+        -- The larger BPM gives us the shortest duration to use for calculations that are safe
+        local maxBPM = math.max(timingPointAtCurrentNote.Bpm, timingPointAtNextNote.Bpm)
+        local millisecondsInMinute = 60000
+        local snapGapDuration = millisecondsInMinute / (beatSnap * maxBPM)
+        local roundedSnapGapDuration = round(snapGapDuration, 0)
+        local timeGap = math.max(settingVars.minLNGapTime, roundedSnapGapDuration)
+        return timeGap
+end
 -- Returns whether or not there's enough selected notes [Boolean]
 -- Parameters
 --    minimumNotes : minimum number of notes needed to be selected [Int]
@@ -951,9 +1029,7 @@ function combo(label, list, listIndex)
     local newListIndex = listIndex
     for i = 1, #list do
         local listItem = list[i]
-        if imgui.Selectable(listItem) then
-            newListIndex = i
-        end
+        if imgui.Selectable(listItem) then newListIndex = i end
     end
     imgui.EndCombo()
     return newListIndex
@@ -1066,6 +1142,15 @@ end
 -- Choose Functions (Sorted Alphabetically) -------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 
+-- Lets you choose the beat snap gap
+-- Parameters
+--    settingVars : list of variables used for the current menu [Table]
+function chooseBeatSnapGap(settingVars)
+    local _, newBeatSnapGap = imgui.inputFloat("Snap Gap", settingVars.beatSnapGap, 1, 1, "%.2f")
+    settingVars.beatSnapGap = clampToInterval(newBeatSnapGap, 0, FUNNY_NUMBER)
+    helpMarker("Beat snap gap between LNs when applying inverse.\n"..
+               "If beat snap gap is 0, the minimum LN gap will be used instead.")
+end
 -- Lets you choose the color theme of the plugin
 -- Parameters
 --    globalVars : list of variables used globally across all menus [Table]
@@ -1100,10 +1185,10 @@ end
 -- Lets you choose the minimum LN gap length in milliseconds
 -- Parameters
 --    settingVars : list of variables used for the current menu [Table]
-function chooseMinLNGapLength(settingVars)
-    local _, newLNGapLength = imgui.InputInt("Min LN Gap", settingVars.minLNGapLength, 1, 1)
-    settingVars.minLNGapLength = clampToInterval(newLNGapLength, 0, FUNNY_NUMBER)
-    helpMarker("Minimum allowed LN gap length in millseconds when applying inverse")
+function chooseMinLNGapTime(settingVars)
+    local _, newLNGapTime = imgui.InputInt("Min LN Gap", settingVars.minLNGapTime, 1, 1)
+    settingVars.minLNGapTime = clampToInterval(newLNGapTime, 0, FUNNY_NUMBER)
+    helpMarker("Minimum allowed LN gap length in millseconds")
 end
 -- Lets you choose the minimum LN length in milliseconds
 -- Parameters
@@ -1111,7 +1196,7 @@ end
 function chooseMinLNLength(settingVars)
     local _, newLNLength = imgui.InputInt("Min LN Time", settingVars.minLNLength, 1, 1)
     settingVars.minLNLength = clampToInterval(newLNLength, 0, FUNNY_NUMBER)
-    helpMarker("Minimum allowed LN length in millseconds when applying inverse")
+    helpMarker("Minimum allowed LN length in millseconds")
 end
 -- Lets you choose the note info tooltip visibility
 -- Parameters
@@ -1945,4 +2030,454 @@ function saveVariables(listName, variables)
     for key, value in pairs(variables) do
         state.SetValue(listName..key, value)
     end
+end
+
+---------------------------------------------------------------------------------------------------
+-- Drawing ----------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------
+
+-- Converts an RGBA color value into uint (unsigned integer) and returns the converted value [Int]
+-- Parameters
+--    r : red value [Int]
+--    g : green value [Int]
+--    b : blue value [Int]
+--    a : alpha value [Int]
+function rgbaToUint(r, g, b, a) return a*16^6 + b*16^4 + g*16^2 + r end
+-- Draws an animation of a chinchilla when the plugin first starts up
+function drawChinchillaStartupAnimation()
+    local pluginTime = imgui.GetTime()-- % n -- you can make it appear every n seconds
+    local animationFPS = 24
+    local totalFrames = 16
+    local animationDuration = (totalFrames + 1) / animationFPS
+    if pluginTime > animationDuration then return end
+
+    local o = imgui.GetOverlayDrawList()
+    local chinchillaSize = 200
+    local windowSize = state.WindowSize
+    local windowHeight = windowSize[2]
+    local chinchillaXPosition = windowSize[1] / 3
+    local chinchillaColors = getChinchillaColorsList()
+    local animationFrameFuncs = getStartupFrameFunctionsList()
+    for frameNum = 1, totalFrames do
+        local frameTime = frameNum / animationFPS
+        local frameFunc = animationFrameFuncs[frameNum]
+        if pluginTime < frameTime then
+            frameFunc(o, chinchillaSize, chinchillaXPosition, chinchillaColors, windowHeight)
+            return
+        end
+    end
+end
+-- Draws frame 1 of the chinchilla startup animation
+-- Parameters
+--    o                   : [imgui overlay drawlist]
+--    chinchillaSize      : size of the chinchilla [Int/Float]
+--    chinchillaXPosition : x coordinate of the center of the chinchilla [Int/Float]
+--    chinchillaColors    : list of uint (unsigned integer) color values of the chinchilla [Table]
+--    windowHeight        : height of the quaver window [Int]
+function drawChinchillaAnimationFrame1(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
+                                       windowHeight)
+    return -- empty frame lol
+end
+-- Draws frame 2 of the chinchilla startup animation
+-- Parameters
+--    o                   : [imgui overlay drawlist]
+--    chinchillaSize      : size of the chinchilla [Int/Float]
+--    chinchillaXPosition : x coordinate of the center of the chinchilla [Int/Float]
+--    chinchillaColors    : list of uint (unsigned integer) color values of the chinchilla [Table]
+--    windowHeight        : height of the quaver window [Int]
+function drawChinchillaAnimationFrame2(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
+                                       windowHeight)
+    local bodyCenterCoords = {chinchillaXPosition, windowHeight}
+    drawMainChinchilla(o, bodyCenterCoords, chinchillaSize, chinchillaColors)
+end
+-- Draws frame 3 of the chinchilla startup animation
+-- Parameters
+--    o                   : [imgui overlay drawlist]
+--    chinchillaSize      : size of the chinchilla [Int/Float]
+--    chinchillaXPosition : x coordinate of the center of the chinchilla [Int/Float]
+--    chinchillaColors    : list of uint (unsigned integer) color values of the chinchilla [Table]
+--    windowHeight        : height of the quaver window [Int]
+function drawChinchillaAnimationFrame3(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
+                                       windowHeight)
+    local bodyCenterCoords = {chinchillaXPosition, windowHeight - 220}
+    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 1)
+    drawMainChinchilla(o, bodyCenterCoords, chinchillaSize, chinchillaColors)
+end
+-- Draws frame 4 of the chinchilla startup animation
+-- Parameters
+--    o                   : [imgui overlay drawlist]
+--    chinchillaSize      : size of the chinchilla [Int/Float]
+--    chinchillaXPosition : x coordinate of the center of the chinchilla [Int/Float]
+--    chinchillaColors    : list of uint (unsigned integer) color values of the chinchilla [Table]
+--    windowHeight        : height of the quaver window [Int]
+function drawChinchillaAnimationFrame4(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
+                                       windowHeight)
+    local bodyCenterCoords = {chinchillaXPosition, windowHeight - 264}
+    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 2)
+    drawMainChinchilla(o, bodyCenterCoords, chinchillaSize, chinchillaColors)
+end
+-- Draws frame 5 of the chinchilla startup animation
+-- Parameters
+--    o                   : [imgui overlay drawlist]
+--    chinchillaSize      : size of the chinchilla [Int/Float]
+--    chinchillaXPosition : x coordinate of the center of the chinchilla [Int/Float]
+--    chinchillaColors    : list of uint (unsigned integer) color values of the chinchilla [Table]
+--    windowHeight        : height of the quaver window [Int]
+function drawChinchillaAnimationFrame5(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
+                                       windowHeight)
+    local bodyCenterCoords = {chinchillaXPosition, windowHeight - 284}
+    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 3)
+    drawMainChinchilla(o, bodyCenterCoords, chinchillaSize, chinchillaColors)
+end
+-- Draws frame 6 of the chinchilla startup animation
+-- Parameters
+--    o                   : [imgui overlay drawlist]
+--    chinchillaSize      : size of the chinchilla [Int/Float]
+--    chinchillaXPosition : x coordinate of the center of the chinchilla [Int/Float]
+--    chinchillaColors    : list of uint (unsigned integer) color values of the chinchilla [Table]
+--    windowHeight        : height of the quaver window [Int]
+function drawChinchillaAnimationFrame6(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
+                                       windowHeight)
+    local bodyCenterCoords = {chinchillaXPosition, windowHeight - 294}
+    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 4)
+    drawMainChinchilla(o, bodyCenterCoords, chinchillaSize, chinchillaColors)
+end
+-- Draws frame 7 of the chinchilla startup animation
+-- Parameters
+--    o                   : [imgui overlay drawlist]
+--    chinchillaSize      : size of the chinchilla [Int/Float]
+--    chinchillaXPosition : x coordinate of the center of the chinchilla [Int/Float]
+--    chinchillaColors    : list of uint (unsigned integer) color values of the chinchilla [Table]
+--    windowHeight        : height of the quaver window [Int]
+function drawChinchillaAnimationFrame7(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
+                                       windowHeight)
+    local bodyCenterCoords = {chinchillaXPosition, windowHeight - 304}
+    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 5)
+    drawMainChinchilla(o, bodyCenterCoords, chinchillaSize, chinchillaColors)
+end
+-- Draws frame 8 of the chinchilla startup animation
+-- Parameters
+--    o                   : [imgui overlay drawlist]
+--    chinchillaSize      : size of the chinchilla [Int/Float]
+--    chinchillaXPosition : x coordinate of the center of the chinchilla [Int/Float]
+--    chinchillaColors    : list of uint (unsigned integer) color values of the chinchilla [Table]
+--    windowHeight        : height of the quaver window [Int]
+function drawChinchillaAnimationFrame8(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
+                                       windowHeight)
+    local bodyCenterCoords = {chinchillaXPosition, windowHeight - 308}
+    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 3)
+    drawMainChinchilla(o, bodyCenterCoords, chinchillaSize, chinchillaColors)
+end
+-- Draws frame 9 of the chinchilla startup animation
+-- Parameters
+--    o                   : [imgui overlay drawlist]
+--    chinchillaSize      : size of the chinchilla [Int/Float]
+--    chinchillaXPosition : x coordinate of the center of the chinchilla [Int/Float]
+--    chinchillaColors    : list of uint (unsigned integer) color values of the chinchilla [Table]
+--    windowHeight        : height of the quaver window [Int]
+function drawChinchillaAnimationFrame9(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
+                                       windowHeight)
+    local bodyCenterCoords = {chinchillaXPosition, windowHeight - 312}
+    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 1)
+    drawMainChinchilla(o, bodyCenterCoords, chinchillaSize, chinchillaColors)
+end
+-- Draws frame 10 of the chinchilla startup animation
+-- Parameters
+--    o                   : [imgui overlay drawlist]
+--    chinchillaSize      : size of the chinchilla [Int/Float]
+--    chinchillaXPosition : x coordinate of the center of the chinchilla [Int/Float]
+--    chinchillaColors    : list of uint (unsigned integer) color values of the chinchilla [Table]
+--    windowHeight        : height of the quaver window [Int]
+function drawChinchillaAnimationFrame10(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
+                                        windowHeight)
+    local bodyCenterCoords = {chinchillaXPosition, windowHeight - 308}
+    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 2)
+    drawMainChinchilla(o, bodyCenterCoords, chinchillaSize, chinchillaColors)
+end
+-- Draws frame 11 of the chinchilla startup animation
+-- Parameters
+--    o                   : [imgui overlay drawlist]
+--    chinchillaSize      : size of the chinchilla [Int/Float]
+--    chinchillaXPosition : x coordinate of the center of the chinchilla [Int/Float]
+--    chinchillaColors    : list of uint (unsigned integer) color values of the chinchilla [Table]
+--    windowHeight        : height of the quaver window [Int]
+function drawChinchillaAnimationFrame11(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
+                                        windowHeight)
+    local bodyCenterCoords = {chinchillaXPosition, windowHeight - 304}
+    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 3)
+    drawMainChinchilla(o, bodyCenterCoords, chinchillaSize, chinchillaColors)
+end
+-- Draws frame 12 of the chinchilla startup animation
+-- Parameters
+--    o                   : [imgui overlay drawlist]
+--    chinchillaSize      : size of the chinchilla [Int/Float]
+--    chinchillaXPosition : x coordinate of the center of the chinchilla [Int/Float]
+--    chinchillaColors    : list of uint (unsigned integer) color values of the chinchilla [Table]
+--    windowHeight        : height of the quaver window [Int]
+function drawChinchillaAnimationFrame12(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
+                                        windowHeight)
+    local bodyCenterCoords = {chinchillaXPosition, windowHeight - 294}
+    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 4)
+    drawMainChinchilla(o, bodyCenterCoords, chinchillaSize, chinchillaColors)
+end
+-- Draws frame 13 of the chinchilla startup animation
+-- Parameters
+--    o                   : [imgui overlay drawlist]
+--    chinchillaSize      : size of the chinchilla [Int/Float]
+--    chinchillaXPosition : x coordinate of the center of the chinchilla [Int/Float]
+--    chinchillaColors    : list of uint (unsigned integer) color values of the chinchilla [Table]
+--    windowHeight        : height of the quaver window [Int]
+function drawChinchillaAnimationFrame13(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
+                                        windowHeight)
+    local bodyCenterCoords = {chinchillaXPosition, windowHeight - 284}
+    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 5)
+    drawMainChinchilla(o, bodyCenterCoords, chinchillaSize, chinchillaColors)
+end
+-- Draws frame 14 of the chinchilla startup animation
+-- Parameters
+--    o                   : [imgui overlay drawlist]
+--    chinchillaSize      : size of the chinchilla [Int/Float]
+--    chinchillaXPosition : x coordinate of the center of the chinchilla [Int/Float]
+--    chinchillaColors    : list of uint (unsigned integer) color values of the chinchilla [Table]
+--    windowHeight        : height of the quaver window [Int]
+function drawChinchillaAnimationFrame14(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
+                                        windowHeight)
+    local bodyCenterCoords = {chinchillaXPosition, windowHeight - 264}
+    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 3)
+    drawMainChinchilla(o, bodyCenterCoords, chinchillaSize, chinchillaColors)
+end
+-- Draws frame 15 of the chinchilla startup animation
+-- Parameters
+--    o                   : [imgui overlay drawlist]
+--    chinchillaSize      : size of the chinchilla [Int/Float]
+--    chinchillaXPosition : x coordinate of the center of the chinchilla [Int/Float]
+--    chinchillaColors    : list of uint (unsigned integer) color values of the chinchilla [Table]
+--    windowHeight        : height of the quaver window [Int]
+function drawChinchillaAnimationFrame15(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
+                                        windowHeight)
+    local bodyCenterCoords = {chinchillaXPosition, windowHeight - 220}
+    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 1)
+    drawMainChinchilla(o, bodyCenterCoords, chinchillaSize, chinchillaColors)
+end
+-- Draws frame 16 of the chinchilla startup animation
+-- Parameters
+--    o                   : [imgui overlay drawlist]
+--    chinchillaSize      : size of the chinchilla [Int/Float]
+--    chinchillaXPosition : x coordinate of the center of the chinchilla [Int/Float]
+--    chinchillaColors    : list of uint (unsigned integer) color values of the chinchilla [Table]
+--    windowHeight        : height of the quaver window [Int]
+function drawChinchillaAnimationFrame16(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
+                                        windowHeight)
+    local bodyCenterCoords = {chinchillaXPosition, windowHeight}
+    drawMainChinchilla(o, bodyCenterCoords, chinchillaSize, chinchillaColors)
+end
+-- Returns a list of animation frames for the startup animation [Table]
+function getChinchillaColorsList()
+    local chinchillaColors = {}
+    chinchillaColors[1] = rgbaToUint(202, 211, 229, 255)
+    chinchillaColors[2] = rgbaToUint(138, 141, 158, 255)
+    chinchillaColors[3] = rgbaToUint(74, 83, 74, 255)
+    chinchillaColors[4] = rgbaToUint(128, 128, 128, 255)
+    chinchillaColors[5] = rgbaToUint(171, 165, 165, 255)
+    chinchillaColors[6] = rgbaToUint(198, 196, 200, 255)
+    return chinchillaColors
+end
+-- Returns a list of animation frames for the startup animation [Table]
+function getStartupFrameFunctionsList()
+    local animationFrames = {}
+    animationFrames[1] = drawChinchillaAnimationFrame1
+    animationFrames[2] = drawChinchillaAnimationFrame2
+    animationFrames[3] = drawChinchillaAnimationFrame3
+    animationFrames[4] = drawChinchillaAnimationFrame4
+    animationFrames[5] = drawChinchillaAnimationFrame5
+    animationFrames[6] = drawChinchillaAnimationFrame6
+    animationFrames[7] = drawChinchillaAnimationFrame7
+    animationFrames[8] = drawChinchillaAnimationFrame8
+    animationFrames[9] = drawChinchillaAnimationFrame9
+    animationFrames[10] = drawChinchillaAnimationFrame10
+    animationFrames[11] = drawChinchillaAnimationFrame11
+    animationFrames[12] = drawChinchillaAnimationFrame12
+    animationFrames[13] = drawChinchillaAnimationFrame13
+    animationFrames[14] = drawChinchillaAnimationFrame14
+    animationFrames[15] = drawChinchillaAnimationFrame15
+    animationFrames[16] = drawChinchillaAnimationFrame16
+    return animationFrames
+end
+-- Returns coordinates relative to a given coordinate [Table]
+-- Parameters
+--    point   : (x, y) coordinates [Table]
+--    xChange : change in x coordinate [Int]
+--    yChange : change in y coordinate [Int]
+function relativeCoords(point, xChange, yChange)
+    return {point[1] + xChange, point[2] + yChange}
+end
+-- Draws the static, main parts of the chinchilla
+-- Parameters
+--    o                : [imgui overlay drawlist]
+--    bodyCenterCoords : coordinates of the center of the body of the chinchilla [Table]
+--    size             : size of the chinchilla [Int]
+--    chinchillaColors : list of uint (unsigned integer) color values of the chinchilla [Table]
+function drawMainChinchilla(o, bodyCenterCoords, size, chinchillaColors)
+    local ear1Coords = relativeCoords(bodyCenterCoords, -99, -32)
+    local ear2Coords = relativeCoords(bodyCenterCoords, -4, -106)
+    local earColor = chinchillaColors[2]
+    local earRadius = 40
+    local earSegments = 32
+    o.AddCircleFilled(ear1Coords, earRadius, earColor, earSegments)
+    o.AddCircleFilled(ear2Coords, earRadius, earColor, earSegments)
+    local bodyRadius = size / 2
+    local bodyColor = chinchillaColors[1]
+    local bodyCircleSegments = 40
+    o.AddCircleFilled(bodyCenterCoords, bodyRadius, bodyColor, bodyCircleSegments)
+    local eyeP1 = relativeCoords(bodyCenterCoords, 22, -69)
+    local eyeP2 = relativeCoords(bodyCenterCoords, 7, -71)
+    local eyeP3 = relativeCoords(bodyCenterCoords, 5, -56)
+    local eyeP4 = relativeCoords(bodyCenterCoords, -53, -10)
+    local eyeP5 = relativeCoords(bodyCenterCoords, -68, -12)
+    local eyeP6 = relativeCoords(bodyCenterCoords, -70, 3)
+    local eyeRadius = 7.5
+    local eyeColor = chinchillaColors[3]
+    local eyeSegments = 12
+    drawPill(o, eyeP1, eyeP2, eyeRadius, eyeColor, eyeSegments)
+    drawPill(o, eyeP2, eyeP3, eyeRadius, eyeColor, eyeSegments)
+    drawPill(o, eyeP4, eyeP5, eyeRadius, eyeColor, eyeSegments)
+    drawPill(o, eyeP5, eyeP6, eyeRadius, eyeColor, eyeSegments)
+    local whiskerP1 = relativeCoords(bodyCenterCoords, -24, -4)
+    local whiskerP2 = relativeCoords(bodyCenterCoords, -39, 20)
+    local whiskerP3 = relativeCoords(bodyCenterCoords, -12, -2)
+    local whiskerP4 = relativeCoords(bodyCenterCoords, -20, 27)
+    local whiskerP5 = relativeCoords(bodyCenterCoords, 4, -26)
+    local whiskerP6 = relativeCoords(bodyCenterCoords, 31, -35)
+    local whiskerP7 = relativeCoords(bodyCenterCoords, 4, -15)
+    local whiskerP8 = relativeCoords(bodyCenterCoords, 34, -15)
+    local whiskerColor = chinchillaColors[4]
+    local whiskerThickness = 1
+    o.AddLine(whiskerP1, whiskerP2, whiskerColor, whiskerThickness)
+    o.AddLine(whiskerP3, whiskerP4, whiskerColor, whiskerThickness)
+    o.AddLine(whiskerP5, whiskerP6, whiskerColor, whiskerThickness)
+    o.AddLine(whiskerP7, whiskerP8, whiskerColor, whiskerThickness)
+    local noseCoords = relativeCoords(bodyCenterCoords, -13, -20)
+    local noseRadius = 10
+    local noseColor = chinchillaColors[2]
+    local noseSegments = 16
+    o.AddCircleFilled(noseCoords, noseRadius, noseColor, noseSegments)
+    local feetP1 = relativeCoords(bodyCenterCoords, 24, 75)
+    local feetP2 = relativeCoords(bodyCenterCoords, -5, 74)
+    local feetP3 = relativeCoords(bodyCenterCoords, 71, 38)
+    local feetP4 = relativeCoords(bodyCenterCoords, 77, 10)
+    local feetRadius = 9
+    local feetColor = chinchillaColors[5]
+    local feetSegments = 16
+    drawPill(o, feetP1, feetP2, feetRadius, feetColor, feetSegments)
+    drawPill(o, feetP3, feetP4, feetRadius, feetColor, feetSegments)
+    local toeP1 = relativeCoords(bodyCenterCoords, 84, 3)
+    local toeP2 = relativeCoords(bodyCenterCoords, 79, -1)
+    local toeP3 = relativeCoords(bodyCenterCoords, 73, 1)
+    local toeP4 = relativeCoords(bodyCenterCoords, -12, 68)
+    local toeP5 = relativeCoords(bodyCenterCoords, -16, 73)
+    local toeP6 = relativeCoords(bodyCenterCoords, -13, 79)
+    local toeCircleRadius = 2.5
+    local feetToeCircleRadius = 5
+    local toeColor = chinchillaColors[6]
+    local toeSegments = 8
+    o.AddCircleFilled(toeP1, feetToeCircleRadius, feetColor, toeSegments)
+    o.AddCircleFilled(toeP2, feetToeCircleRadius, feetColor, toeSegments)
+    o.AddCircleFilled(toeP3, feetToeCircleRadius, feetColor, toeSegments)
+    o.AddCircleFilled(toeP4, feetToeCircleRadius, feetColor, toeSegments)
+    o.AddCircleFilled(toeP5, feetToeCircleRadius, feetColor, toeSegments)
+    o.AddCircleFilled(toeP6, feetToeCircleRadius, feetColor, toeSegments)
+    o.AddCircleFilled(toeP3, toeCircleRadius, toeColor, toeSegments)
+    o.AddCircleFilled(toeP1, toeCircleRadius, toeColor, toeSegments)
+    o.AddCircleFilled(toeP2, toeCircleRadius, toeColor, toeSegments)
+    o.AddCircleFilled(toeP4, toeCircleRadius, toeColor, toeSegments)
+    o.AddCircleFilled(toeP5, toeCircleRadius, toeColor, toeSegments)
+    o.AddCircleFilled(toeP6, toeCircleRadius, toeColor, toeSegments)
+end
+-- Draws a pill shape between two points
+-- Parameters
+--    o              : [imgui overlay drawlist]
+--    p1             : coordinates of the first point [Table]
+--    p2             : coordinates of the second point [Table]
+--    radius         : radius of the circles of the pill [Int/Float]
+--    color          : uint (unsigned integer) color value of the pill [Int]
+--    circleSegments : number of segments on the circles of the pill [Int]
+function drawPill(o, p1, p2, radius, color, circleSegments)
+    local p1ToP2 = addVectors(p2, vectorRotated180Degrees(p1))
+    local p1ToP2Length = vectorLength(p1ToP2)
+    local p1ToP2ClockwiseRotated = vectorRotated90DegreesClockwise(p1ToP2)
+    local radiusNormalizingFactor = radius / p1ToP2Length
+    
+    local v1 = vectorScaled(p1ToP2ClockwiseRotated, radiusNormalizingFactor)
+    local v2 = vectorRotated180Degrees(v1)
+    local p3 = addVectors(p1, v1)
+    local p4 = addVectors(p1, v2)
+    local p5 = addVectors(p2, v1)
+    local p6 = addVectors(p2, v2)
+    o.AddCircleFilled(p1, radius, color, circleSegments)
+    o.AddQuadFilled(p3, p4, p6, p5, color)
+    o.AddCircleFilled(p2, radius, color, circleSegments)
+end
+-- Returns a 2D vector/point rotated 90 degrees clockwise [Table]
+-- Parameters
+--    vector : a 2 dimensional vector [Table]
+function vectorRotated90DegreesClockwise(vector)
+    return {vector[2], -vector[1]}
+end
+-- Rotates a 2D vector/point rotated 180 degrees [Table]
+-- Parameters
+--    vector : a 2 dimensional vector [Table]
+function vectorRotated180Degrees(vector)
+    return {-vector[1], -vector[2]}
+end
+-- Returns the length of a vector [Int]
+-- Parameters
+--    vector : vector of any dimensions [Table]
+function vectorLength(vector)
+    local sumOfSquareLengths = 0
+    for i = 1, #vector do
+        sumOfSquareLengths = sumOfSquareLengths + (vector[i]) ^ 2
+    end
+    return math.sqrt(sumOfSquareLengths)
+end
+-- Returns a scaled vector [Table]
+function vectorScaled(vector, scalingFactor)
+    local newVector = {}
+    for i = 1, #vector do
+        newVector[i] = scalingFactor * vector[i]
+    end
+    return newVector
+end
+-- Returns the result of two vectors of same dimension being added [Table]
+-- Parameters
+--    vector1 : first vector [Table]
+--    vector2 : second vector [Table]
+function addVectors(vector1, vector2)
+    local newVector = {}
+    for i = 1, #vector1 do
+        newVector[i] = vector1[i] +  vector2[i]
+    end
+    return newVector
+end
+function drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, frameNum)
+    local p1 = relativeCoords(bodyCenterCoords, 28, 34)
+    local p2
+    local p3
+    if frameNum == 1 then
+        p2 = relativeCoords(bodyCenterCoords, 199, -3)
+        p3 = relativeCoords(bodyCenterCoords, 199, 74)
+    elseif frameNum == 2 then
+        p2 = relativeCoords(bodyCenterCoords, 201, 25)
+        p3 = relativeCoords(bodyCenterCoords, 192, 94)
+    elseif frameNum == 3 then
+        p2 = relativeCoords(bodyCenterCoords, 167, 130)
+        p3 = relativeCoords(bodyCenterCoords, 91, 193)
+    elseif frameNum == 4 then
+        p2 = relativeCoords(bodyCenterCoords, -24, 198)
+        p3 = relativeCoords(bodyCenterCoords, 48, 207)
+    elseif frameNum == 5 then
+        p2 = relativeCoords(bodyCenterCoords, -51, 192)
+        p3 = relativeCoords(bodyCenterCoords, 24, 210)
+    end
+    local tailColor = chinchillaColors[1]
+    o.AddTriangleFilled(p1, p2, p3, tailColor)
 end
