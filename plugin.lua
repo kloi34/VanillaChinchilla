@@ -128,7 +128,9 @@ SCALE_TYPES = {                     -- ways to scale note spacing
     "Polynomial",
     "Circular",
     "Sine Power",
-    "Arc Sine Power"
+    "Arc Sine Power",
+    "Inverse Power",
+    "Peter Stock"
 }
 STYLE_THEMES = {                    -- available style/appearance themes for the plugin
     "Rounded",
@@ -1267,7 +1269,7 @@ function generateLinearSet(startValue, endValue, numValues)
     return linearSet
 end
 -- Scales a percent value based on the selected scale type
--- Scaling graphs on Desmos: https://www.desmos.com/calculator/esbecrvgnk
+-- Scaling graphs on Desmos: https://www.desmos.com/calculator/teeizz9l1t
 -- Parameters
 --    settingVars : list of variables used for the current menu [Table]
 --    percent     : percent value to scale [Int/Float]
@@ -1299,6 +1301,19 @@ function scalePercent(settingVars, percent)
         local exponent = math.log(a + 1)
         local base = 2 * math.asin(workingPercent) / math.pi
         newPercent = workingPercent * (base ^ exponent)
+    elseif scaleType == "Inverse Power" then
+        local denominator = 1 + (workingPercent ^ -a)
+        newPercent = 2 * workingPercent / denominator
+    elseif "Peter Stock" then
+        --[[
+        Algorithm based on a modified version of Peter Stock's StackExchange answer.
+        Peter Stock (https://math.stackexchange.com/users/1246531/peter-stock)
+        SmoothStep: Looking for a continuous family of interpolation functions
+        URL (version: 2023-11-04): https://math.stackexchange.com/q/4800509
+        --]]
+        if a == 0 then return percent end
+        local c = a / (1 - a)
+        newPercent = (workingPercent ^ 2) * (1 + c) / (workingPercent + c)
     end
     if speedUpType then newPercent = 1 - newPercent end
     return clampToInterval(newPercent, 0, 1)
