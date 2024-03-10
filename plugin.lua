@@ -87,6 +87,10 @@ COLOR_THEMES = {                    -- available color themes for the plugin
     "BGR + otingocnI",  -- 14
     "otingocnI"         -- 15
 }
+PLACE_NOTES_BETWEEN_GENERAL_MENUS = {
+    -- "Place Notes By Snap",
+    "Place Notes By Number"
+}
 EDIT_GENERAL_MENUS = {              -- sub-menus within the "Edit Notes (General)" menu
     "Shift Notes Up/Down",
     "Shift Notes Left/Right",
@@ -111,7 +115,7 @@ INFO_MENUS = {                      -- sub-menus within the "Plugin Info" menu
 }
 MENUS = {                           -- high-level menus for the plugin
     "Plugin Info & Settings",
-    --"Place Notes (Between Notes)",
+    "Place Notes (Between Notes)",
     --"Place Notes (Around Note)",
     --"Place Notes (From Scratch)",
     "Edit Notes (General)",
@@ -158,7 +162,7 @@ function draw()
     chooseMenu(globalVars)
     local currentMenu = MENUS[globalVars.menuIndex]
     if currentMenu == "Plugin Info & Settings"      then pluginInfoMenu(globalVars) end
-    --if currentMenu == "Place Notes (Between Notes)" then end
+    if currentMenu == "Place Notes (Between Notes)" then placeNotesBetweenGeneralMenu(globalVars) end
     --if currentMenu == "Place Notes (Around Note)"   then end
     --if currentMenu == "Place Notes (From Scratch)"  then end
     if currentMenu == "Edit Notes (General)"        then editNotesGeneralMenu(globalVars) end
@@ -255,8 +259,33 @@ end
 
 ----------------------------------------------------------------------- Place Notes (Between Notes)
 
+-- Creates the "Place Notes (Between Notes)" menu
+-- Parameters
+--    globalVars : list of variables used globally across all menus [Table]
+function placeNotesBetweenGeneralMenu(globalVars)
+    local menuVars = {
+        subMenuIndex = 1
+    }
+    getVariables("placeNotesBetweenMenuVars", menuVars)
+    chooseSubMenu(menuVars, PLACE_NOTES_BETWEEN_GENERAL_MENUS)
+    saveVariables("placeNotesBetweenMenuVars", menuVars)
+    local currentMenu = PLACE_NOTES_BETWEEN_GENERAL_MENUS[menuVars.subMenuIndex]
+    -- if currentMenu == "Shift Notes Up/Down"    then placeNotesBetweenSnapMenu() end
+    if currentMenu == "Place Notes By Number" then placeNotesBetweenNumberMenu() end
+end
 
-
+function placeNotesBetweenNumberMenu()
+    local settingVars = {
+        noteCount = 1,
+    }
+    getVariables("placeNotesBetweenNumberVars", settingVars)
+    chooseNoteCount(settingVars)
+    saveVariables("placeNotesBetweenNumberVars", settingVars)
+    addSeparator()
+    local buttonText = "Place " .. settingVars.noteCount .. " notes between selected notes"
+    local minimumNotes = 2
+    simpleActionMenu(buttonText, minimumNotes, placeNotesBetweenNumber, nil, settingVars)
+end
 ------------------------------------------------------------------------- Place Notes (Around Note)
 
 
@@ -483,6 +512,17 @@ end
 ---------------------------------------------------------------------------------------------------
 -- Note Manipulation & Wizardry -------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
+
+function placeNotesBetweenNumber(settingVars)
+    local selectedStartTime = state.SelectedHitObjects[1].StartTime
+    local timeDifferencePerNote = (state.SelectedHitObjects[#state.SelectedHitObjects].StartTime - selectedStartTime) / (settingVars.noteCount + 1)
+    local notesToAdd = {}
+    for i = 1, settingVars.noteCount, 1 do
+        local noteStartTime = selectedStartTime + i * timeDifferencePerNote
+        addNoteToList(notesToAdd, state.SelectedHitObjects[1], math.floor(noteStartTime), (i + state.SelectedHitObjects[1].Lane - 1) % 4 + 1, nil, nil, nil)
+    end
+    addNotes(notesToAdd)
+end
 
 -- Shifts selected notes vertically
 -- Parameters
@@ -1120,6 +1160,12 @@ end
 -- Parameters
 --    note : [Quaver HitObject]
 function isLN(note) return note.EndTime ~= 0 end
+-- Adds the given notes
+-- Parameters
+--    notesToAdd    : list of notes to add [Table]
+function addNotes(notesToAdd)
+   actions.PlaceHitObjectBatch(notesToAdd)
+end
 -- Removes and adds the given notes (and auto-selects the newly added notes)
 -- Parameters
 --    notesToRemove : list of notes to remove [Table]
@@ -1362,6 +1408,14 @@ function chooseColorTheme(globalVars)
     
     chooseRGBPeriod(globalVars)
 end
+-- Lets you choose number of notes to place
+-- Parameters
+--    settingVars : list of variables used for the current menu [Table]
+function chooseNoteCount(settingVars) 
+    _, noteCount = imgui.InputInt("Note Count", settingVars.noteCount, 1, 1)
+    settingVars.noteCount = clampToInterval(noteCount, 1, 1000)
+end
+
 -- Lets you choose the intensity of something
 -- Parameters
 --    settingVars : list of variables used for the current menu [Table]
