@@ -8,7 +8,7 @@ The plugin provides various tools to place and edit notes quickly and efficientl
 Here's all the planned and already implemented features of the plugin so far:
 
 ### Place Notes (Between Notes)
-COMING SOON
+- Place Notes By Number
 
 ### Place Notes (Around Note)
 COMING SOON
