@@ -519,7 +519,7 @@ function placeNotesBetweenNumber(settingVars)
     local notesToAdd = {}
     for i = 1, settingVars.noteCount, 1 do
         local noteStartTime = selectedStartTime + i * timeDifferencePerNote
-        addNoteToList(notesToAdd, state.SelectedHitObjects[1], math.floor(noteStartTime), nil, nil, nil, nil)
+        addNoteToList(notesToAdd, state.SelectedHitObjects[1], math.floor(noteStartTime), (i + state.SelectedHitObjects[1].Lane - 1) % 4 + 1, nil, nil, nil)
     end
     addNotes(notesToAdd)
 end
