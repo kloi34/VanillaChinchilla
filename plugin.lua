@@ -1,5 +1,5 @@
 --[[
-VanillaChinchilla v1.0: Quaver plugin for placing/editing notes
+VanillaChinchilla v1.1 beta: Quaver plugin for placing/editing notes
 Copyright (C) 2024  kloi34
 
 This program is free software: you can redistribute it and/or modify
@@ -35,6 +35,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 -- If you have any feature suggestions or issues with the plugin, please open an issue at 
 -- https://github.com/kloi34/VanillaChinchilla/issues
+
+-- Special thanks to ESV Sweetplum for contributing to the plugin
 
 ---------------------------------------------------------------------------------------------------
 -- Global Constants -------------------------------------------------------------------------------
@@ -273,10 +275,10 @@ function placeNotesBetweenGeneralMenu(globalVars)
     -- if currentMenu == "Shift Notes Up/Down"    then placeNotesBetweenSnapMenu() end
     if currentMenu == "Place Notes By Number" then placeNotesBetweenNumberMenu() end
 end
-
+-- Creates the "Place Notes By Number" menu
 function placeNotesBetweenNumberMenu()
     local settingVars = {
-        noteCount = 1,
+        noteCount = 1
     }
     getVariables("placeNotesBetweenNumberVars", settingVars)
     chooseNoteCount(settingVars)
@@ -286,6 +288,7 @@ function placeNotesBetweenNumberMenu()
     local minimumNotes = 2
     simpleActionMenu(buttonText, minimumNotes, placeNotesBetweenNumber, nil, settingVars)
 end
+
 ------------------------------------------------------------------------- Place Notes (Around Note)
 
 
@@ -513,17 +516,25 @@ end
 -- Note Manipulation & Wizardry -------------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 
+-- Places notes between numbers
+-- Parameters
+--    settingVars : list of variables used for the current menu [Table]
 function placeNotesBetweenNumber(settingVars)
-    local selectedStartTime = state.SelectedHitObjects[1].StartTime
-    local timeDifferencePerNote = (state.SelectedHitObjects[#state.SelectedHitObjects].StartTime - selectedStartTime) / (settingVars.noteCount + 1)
+    local totalNumLanes = map.GetKeyCount()
+    local firstNote = state.SelectedHitObjects[1]
+    local boundaryTimes = getBoundaryTimes(state.SelectedHitObjects)
+    local numAllNoteTimes = settingVars.noteCount + 2
+    local newNoteTimes = generateLinearSet(boundaryTimes.min, boundaryTimes.max, numAllNoteTimes)
+    table.remove(newNoteTimes)
+    table.remove(newNoteTimes, 1)
     local notesToAdd = {}
-    for i = 1, settingVars.noteCount, 1 do
-        local noteStartTime = selectedStartTime + i * timeDifferencePerNote
-        addNoteToList(notesToAdd, state.SelectedHitObjects[1], math.floor(noteStartTime), (i + state.SelectedHitObjects[1].Lane - 1) % 4 + 1, nil, nil, nil)
+    for i = 1, #newNoteTimes do
+        local noteStartTime = newNoteTimes[i]
+        local noteLane = shiftWrapLaneNum(firstNote.Lane, i, totalNumLanes)
+        addNoteToList(notesToAdd, firstNote, noteStartTime, noteLane, nil, nil, nil)
     end
     addNotes(notesToAdd)
 end
-
 -- Shifts selected notes vertically
 -- Parameters
 --    settingVars : list of variables used for the current menu [Table]
@@ -1162,9 +1173,9 @@ end
 function isLN(note) return note.EndTime ~= 0 end
 -- Adds the given notes
 -- Parameters
---    notesToAdd    : list of notes to add [Table]
+--    notesToAdd : list of notes to add [Table]
 function addNotes(notesToAdd)
-   actions.PlaceHitObjectBatch(notesToAdd)
+    actions.PlaceHitObjectBatch(notesToAdd)
 end
 -- Removes and adds the given notes (and auto-selects the newly added notes)
 -- Parameters
@@ -1408,14 +1419,6 @@ function chooseColorTheme(globalVars)
     
     chooseRGBPeriod(globalVars)
 end
--- Lets you choose number of notes to place
--- Parameters
---    settingVars : list of variables used for the current menu [Table]
-function chooseNoteCount(settingVars) 
-    _, noteCount = imgui.InputInt("Note Count", settingVars.noteCount, 1, 1)
-    settingVars.noteCount = clampToInterval(noteCount, 1, 1000)
-end
-
 -- Lets you choose the intensity of something
 -- Parameters
 --    settingVars : list of variables used for the current menu [Table]
@@ -1454,6 +1457,13 @@ function chooseMinLNLength(settingVars)
     local _, newLNLength = imgui.InputInt("Min LN Time", settingVars.minLNLength, 1, 1)
     settingVars.minLNLength = clampToInterval(newLNLength, 0, FUNNY_NUMBER)
     helpMarker("Minimum allowed LN length in millseconds")
+end
+-- Lets you choose number of notes to place
+-- Parameters
+--    settingVars : list of variables used for the current menu [Table]
+function chooseNoteCount(settingVars) 
+    _, settingVars.noteCount = imgui.InputInt("Note Count", settingVars.noteCount, 1, 1)
+    settingVars.noteCount = clampToInterval(settingVars.noteCount, 1, FUNNY_NUMBER)
 end
 -- Lets you choose the note info tooltip visibility
 -- Parameters
@@ -2703,6 +2713,9 @@ function vectorLength(vector)
     return math.sqrt(sumOfSquareLengths)
 end
 -- Returns a scaled vector [Table]
+-- Parameters
+--    vector        : vector to scale [Table]
+--    scalingFactor : number to scale the vector by [Int/Float]
 function vectorScaled(vector, scalingFactor)
     local newVector = {}
     for i = 1, #vector do
