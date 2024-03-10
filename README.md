@@ -1,5 +1,5 @@
 # VanillaChinchilla
-![VanillaChinchilla logo](https://github.com/kloi34/VanillaChinchilla/assets/53842237/4e06234d-9011-4e52-8ba1-7bc466d461f8)
+[![VanillaChinchilla logo](https://github.com/kloi34/VanillaChinchilla/assets/53842237/4e06234d-9011-4e52-8ba1-7bc466d461f8)](#)
 > "The ultimate community-driven and open-source competitive mapping plugin"
 
 This is a plugin for [Quaver](https://github.com/Quaver), the ultimate community-driven and open-source competitive rhythm game.
