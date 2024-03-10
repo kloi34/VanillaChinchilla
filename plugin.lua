@@ -127,7 +127,8 @@ SCALE_TYPES = {                     -- ways to scale note spacing
     "Exponential",
     "Polynomial",
     "Circular",
-    "Sine Power"
+    "Sine Power",
+    "Arc Sine Power"
 }
 STYLE_THEMES = {                    -- available style/appearance themes for the plugin
     "Rounded",
@@ -1292,8 +1293,12 @@ function scalePercent(settingVars, percent)
         newPercent = b + 1 - math.sqrt(radicand)
     elseif scaleType == "Sine Power" then
         local exponent = math.log(a + 1)
-        local sineInside = math.sin(math.pi * (workingPercent - 1) / 2) + 1
-        newPercent = workingPercent * (sineInside ^ exponent)
+        local base = math.sin(math.pi * (workingPercent - 1) / 2) + 1
+        newPercent = workingPercent * (base ^ exponent)
+    elseif scaleType == "Arc Sine Power" then
+        local exponent = math.log(a + 1)
+        local base = 2 * math.asin(workingPercent) / math.pi
+        newPercent = workingPercent * (base ^ exponent)
     end
     if speedUpType then newPercent = 1 - newPercent end
     return clampToInterval(newPercent, 0, 1)
