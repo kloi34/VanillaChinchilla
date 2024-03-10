@@ -1,22 +1,29 @@
 # VanillaChinchilla
+![VanillaChinchilla logo](https://github.com/kloi34/VanillaChinchilla/assets/53842237/4e06234d-9011-4e52-8ba1-7bc466d461f8)
 > "The ultimate community-driven and open-source competitive mapping plugin"
 
 This is a plugin for [Quaver](https://github.com/Quaver), the ultimate community-driven and open-source competitive rhythm game.
 The plugin provides various tools to place and edit notes quickly and efficiently when making maps in the editor.
 
 The plugin is still in Beta v1.0, so it's a work in progress and still undergoing development.
-But, here's its features so far:
+Here are the planned features and ones that are already implemented so far:
+
+### Place Notes (Between Notes)
+COMING SOON
+
+### Place Notes (Around Note)
+COMING SOON
 
 ### Edit Notes (General)
 - Shift Notes Up/Down
 - Shift Notes Left/Right
 - Switch Note Lanes
 - Flip Notes Vertically
-- (COMING SOON) Scale Note Spacing
+- Scale Note Spacing
 - (COMING SOON) Shear Note Positions
 
 ### Edit Notes (LNs)
-- (COMING SOON) Extend LNs
+- Extend LNs
 - Inverse LNs
 - Adjust LN Lengths
 - Change LNs to Rice
