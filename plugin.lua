@@ -203,16 +203,16 @@ function keyboardShortcutsMenu()
     local indentAmount = -6
     imgui.Indent(indentAmount)
     imgui.BulletText("Alt + (Q or W) = navigate menu")
-    tooltip("Use this for a quick workflow")
     addSeparator()
     imgui.BulletText("Alt + (A or S) = navigate sub-menu")
-    tooltip("Use this for a quick workflow")
     addSeparator()
-    imgui.BulletText("Alt + (Z or X or C) = (change a setting sometimes)")
-    tooltip("Use this for a quick workflow")
+    imgui.BulletText("Alt + Z = change a tool setting (sometimes)")
+    addSeparator()
+    imgui.BulletText("Alt + X = change a tool setting (sometimes)")
+    addSeparator()
+    imgui.BulletText("Alt + C = change a tool setting (sometimes)")
     addSeparator()
     imgui.BulletText("T = activate the big button that does stuff")
-    tooltip("Use this for a quick workflow")
     addSeparator()
     imgui.BulletText("Shift + Tab = focus plugin + navigate inputs")
     tooltip("Useful when you click off the plugin but want to quickly change an input value")
@@ -225,7 +225,7 @@ end
 function linksMenu()
     linkBox("GitHub Repository", "https://github.com/kloi34/VanillaChinchilla")
     local photoLink = "https://www.facebook.com/cameronschinchillas/photos/1876978765672324"
-    linkBox("Cute Photo from Cameron's Chinchillas UK", photoLink)
+    linkBox("Cute Photo from Cameron's Chinchillas UK", photoLink) -- chinchilla bombs
 end
 -- Creates the "Plugin Appearance Settings" menu
 -- Parameters
@@ -233,12 +233,17 @@ end
 function pluginAppearanceMenu(globalVars)
     chooseStyleTheme(globalVars)
     chooseColorTheme(globalVars)
+    globalVars.styleThemeIndex = getNewComboIndexOnKeyPress(keys.Z, globalVars.styleThemeIndex,
+                                                            STYLE_THEMES)
+    globalVars.colorThemeIndex = getNewComboIndexOnKeyPress(keys.X, globalVars.colorThemeIndex,
+                                                            COLOR_THEMES)
 end
 -- Creates the "Plugin Behavior Settings" menu
 -- Parameters
 --    globalVars : list of variables used globally across all menus [Table]
 function pluginBehaviorMenu(globalVars)
     chooseNoteInfoTooltipVisibility(globalVars)
+    globalVars.hideNoteInfoTooltip = getNewBooleanOnKeyPress(keys.Z, globalVars.hideNoteInfoTooltip)
 end
 -- Creates the "Extra Goodies" menu
 -- Parameters
@@ -302,6 +307,7 @@ function shiftNotesHorizontallyMenu()
     }
     getVariables("shiftHorzSettingVars", settingVars)
     chooseDirection(settingVars)
+    settingVars.directionRight = getNewBooleanOnKeyPress(keys.Z, settingVars.directionRight)
     saveVariables("shiftHorzSettingVars", settingVars)
     addSeparator()
     local buttonText = "Shift selected notes horizontally"
@@ -324,8 +330,10 @@ function switchNoteLanesMenu()
     updateSelectedLaneIndexes(settingVars)
     addSeparator()
     button("Randomize", HALF_BUTTON_SIZE, randomizeOldLanesInNewLanes, nil, settingVars)
+    executeFunctionOnKeyPress(keys.Z, randomizeOldLanesInNewLanes, nil, settingVars)
     imgui.SameLine(0, SAMELINE_SPACING)
     button("Reset", HALF_BUTTON_SIZE, resetOldLanesInNewLanes, nil, settingVars)
+    executeFunctionOnKeyPress(keys.X, resetOldLanesInNewLanes, nil, settingVars)
     saveVariables("switchLanesSettingVars", settingVars)
     addSeparator()
     local buttonText = "Switch lanes of selected notes"
@@ -349,7 +357,11 @@ function scaleNoteSpacingMenu()
     }
     getVariables("scaleSpacingSettingVars", settingVars)
     chooseBehavior(settingVars)
+    settingVars.behaviorIndex = getNewComboIndexOnKeyPress(keys.Z, settingVars.behaviorIndex,
+                                                           BEHAVIORS)
     chooseScaleType(settingVars)
+    settingVars.scaleTypeIndex = getNewComboIndexOnKeyPress(keys.X, settingVars.scaleTypeIndex,
+                                                            SCALE_TYPES)
     chooseIntensity(settingVars)
     chooseMinLNLength(settingVars)
     saveVariables("scaleSpacingSettingVars", settingVars)
@@ -372,9 +384,14 @@ function shearLanePositionsMenu()
     }
     getVariables("shearPositionsSettingVars", settingVars)
     chooseDirection(settingVars)
+    settingVars.directionRight = getNewBooleanOnKeyPress(keys.Z, settingVars.directionRight)
     addSeparator()
     chooseBehavior(settingVars)
+    settingVars.behaviorIndex = getNewComboIndexOnKeyPress(keys.X, settingVars.behaviorIndex,
+                                                           BEHAVIORS)
     chooseScaleType(settingVars)
+    settingVars.scaleTypeIndex = getNewComboIndexOnKeyPress(keys.C, settingVars.scaleTypeIndex,
+                                                            SCALE_TYPES)
     chooseIntensity(settingVars)
     chooseMilliseconds(settingVars)
     settingVars.milliseconds = clampToInterval(settingVars.milliseconds, 1, 10 * FUNNY_NUMBER)
@@ -445,6 +462,7 @@ function adjustLNLengthsMenu()
     }
     getVariables("LNsToRiceSettingVars", settingVars)
     chooseTargetLNSpot(settingVars)
+    settingVars.targetLNStart = getNewBooleanOnKeyPress(keys.Z, settingVars.targetLNStart)
     addSeparator()
     chooseMilliseconds(settingVars)
     saveVariables("LNsToRiceSettingVars", settingVars)
@@ -833,12 +851,41 @@ end
 --    func        : function to execute once key is pressed [Function]
 --    globalVars  : list of variables used globally across all menus [Table]
 --    settingVars : list of variables used for the current menu [Table]
-function executeFunctionIfKeyPressed(key, func, globalVars, settingVars)
+function executeFunctionOnKeyPress(key, func, globalVars, settingVars)
     if not utils.IsKeyPressed(key) then return end
+    
     if globalVars and settingVars then func(globalVars, settingVars) return end
     if globalVars then func(globalVars) return end
     if settingVars then func(settingVars) return end
     func()
+end
+-- Returns the new combo index when ALT + a specific key is pressed [Int]
+-- Parameters
+--    key        : key to be pressed [keys.~, from Quaver's MonoGame.Framework.Input.Keys enum]
+--    comboIndex : current index of the combo [Int]
+--    comboList  : list used by the combo [Table]
+function getNewComboIndexOnKeyPress(key, comboIndex, comboList)
+    local altKeyDown = utils.IsKeyDown(keys.LeftAlt) or
+                       utils.IsKeyDown(keys.RightAlt)
+    if not altKeyDown then return comboIndex end
+    
+    if not utils.IsKeyPressed(key) then return comboIndex end
+    
+    local newComboIndex = comboIndex + 1
+    return wrapToInterval(newComboIndex, 1, #comboList)
+end
+-- Returns the opposite boolean when ALT + a specific key is pressed [Int]
+-- Parameters
+--    key     : key to be pressed [keys.~, from Quaver's MonoGame.Framework.Input.Keys enum]
+--    boolean : [Boolean]
+function getNewBooleanOnKeyPress(key, boolean)
+    local altKeyDown = utils.IsKeyDown(keys.LeftAlt) or
+                       utils.IsKeyDown(keys.RightAlt)
+    if not altKeyDown then return boolean end
+    
+    if not utils.IsKeyPressed(key) then return boolean end
+    
+    return not boolean
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -1135,7 +1182,7 @@ function simpleActionMenu(buttonText, minimumNotes, actionfunc, globalVars, sett
     
     button(buttonText, ACTION_BUTTON_SIZE, actionfunc, globalVars, settingVars)
     tooltip("Press ' T ' on your keyboard to do the same thing as this button")
-    executeFunctionIfKeyPressed(keys.T, actionfunc, globalVars, settingVars)
+    executeFunctionOnKeyPress(keys.T, actionfunc, globalVars, settingVars)
 end
 -- Returns whether or not a tooltip is already active [Boolean]
 function isTooltipAlreadyActive() return state.GetValue("uiTooltipActive") end
@@ -1161,7 +1208,7 @@ function generateLinearSet(startValue, endValue, numValues)
     return linearSet
 end
 -- Scales a percent value based on the selected scale type
--- Scaling graphs on Desmos: https://www.desmos.com/calculator/oawkj5r1vw
+-- Scaling graphs on Desmos: https://www.desmos.com/calculator/nw0lpykb9r
 -- Parameters
 --    settingVars : list of variables used for the current menu [Table]
 --    percent     : percent value to scale [Int/Float]
