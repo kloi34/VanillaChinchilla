@@ -60,9 +60,14 @@ LANE_BUTTON_SIZE = {30, 30}         -- dimensions of the button representing a n
 
 MIN_RGB_CYCLE_TIME = 6              -- minimum seconds for one complete RGB color cycle
 MAX_RGB_CYCLE_TIME = 300            -- maximum seconds for one complete RGB color cycle
+SMALL_NUMBER_TOLERANCE = 0.001      -- smallest number allowed for specific calculations
 
 -------------------------------------------------------------------------------------- Menu related
 
+BEHAVIORS = {                       -- behaviors of notes/time
+    "Slow down",
+    "Speed up"
+}
 COLOR_THEMES = {                    -- available color themes for the plugin
     "Classic",          -- 1
     "Strawberry",       -- 2
@@ -113,6 +118,7 @@ MENUS = {                           -- high-level menus for the plugin
 SCALE_TYPES = {                     -- ways to scale note spacing
     "Exponential",
     "Polynomial",
+    "Circular"
 }
 STYLE_THEMES = {                    -- available style/appearance themes for the plugin
     "Rounded",
@@ -334,15 +340,17 @@ end
 -- Creates the "Scale Note Spacing" menu
 function scaleNoteSpacingMenu()
     local settingVars = {
+        behaviorIndex = 1,
         scaleTypeIndex = 1,
         intensity = 0.5,
     }
     getVariables("scaleSpacingSettingVars", settingVars)
+    chooseBehavior(settingVars)
     chooseScaleType(settingVars)
     chooseIntensity(settingVars)
     saveVariables("scaleSpacingSettingVars", settingVars)
     addSeparator()
-    local invalidIntensity = settingVars.intensity == 0
+    local invalidIntensity = settingVars.intensity < SMALL_NUMBER_TOLERANCE
     if invalidIntensity then imgui.Text(":jerry:") return end
     
     local buttonText = "Scale spacing between selected notes"
@@ -539,20 +547,30 @@ function scaleNoteSpacing(settingVars)
     removeAndAddNotes(notesToRemove, notesToAdd)
 end
 -- Scales a percent value based on the selected scale type
+-- Scaling graphs on Desmos: https://www.desmos.com/calculator/oawkj5r1vw
 -- Parameters
 --    settingVars : list of variables used for the current menu [Table]
 --    percent     : percent value to scale [Int/Float]
 function scalePercent(settingVars, percent)
+    local behaviorType = BEHAVIORS[settingVars.behaviorIndex]
+    local speedUpType = behaviorType == "Speed up"
+    local workingPercent = percent
+    if speedUpType then workingPercent = 1 - percent end
     local newPercent
     local a = settingVars.intensity
     local scaleType = SCALE_TYPES[settingVars.scaleTypeIndex]
     if scaleType == "Exponential" then
-        local exponent = a * (percent - 1)
-        newPercent = (percent * math.exp(exponent))
+        local exponent = a * (workingPercent - 1)
+        newPercent = (workingPercent * math.exp(exponent))
     elseif scaleType == "Polynomial" then
         local exponent = a + 1
-        newPercent = percent ^ exponent
+        newPercent = workingPercent ^ exponent
+    elseif scaleType == "Circular" then
+        local b = 1 / (a ^ (a + 1))
+        local radicand = (b + 1) ^ 2 + b ^ 2 - (workingPercent + b) ^ 2
+        newPercent = b + 1 - math.sqrt(radicand)
     end
+    if speedUpType then newPercent = 1 - newPercent end
     return clampToInterval(newPercent, 0, 1)
 end
 -- Shears positions across the lanes of selected notes
@@ -1193,6 +1211,12 @@ function chooseBeatSnapGap(settingVars)
     settingVars.beatSnapGap = clampToInterval(newBeatSnapGap, 0, FUNNY_NUMBER)
     helpMarker("Beat snap gap between LNs when applying inverse.\n"..
                "If beat snap gap is 0, the minimum LN gap will be used instead.")
+end
+-- Lets you choose the behavior of something (speed up or slow down)
+-- Parameters
+--    settingVars : list of variables used for the current menu [Table]
+function chooseBehavior(settingVars)
+    settingVars.behaviorIndex = combo("Behavior", BEHAVIORS, settingVars.behaviorIndex)
 end
 -- Lets you choose the color theme of the plugin
 -- Parameters
