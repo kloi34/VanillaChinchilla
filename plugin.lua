@@ -93,7 +93,7 @@ EDIT_GENERAL_MENUS = {              -- sub-menus within the "Edit Notes (General
     "Switch Note Lanes",
     "Flip Notes Vertically",
     "Scale Note Spacing",
-    "Shear Note Positions"
+    "Shear Lane Positions"
 }
 EDIT_LNS_MENUS = {                  -- sub-menus within the "Edit Notes (LNs)" menu
     "Apply Full LN",
@@ -208,7 +208,7 @@ function keyboardShortcutsMenu()
     imgui.BulletText("Alt + (A or S) = navigate sub-menu")
     tooltip("Use this for a quick workflow")
     addSeparator()
-    imgui.BulletText("Alt + (Z or X) = (change a setting sometimes)")
+    imgui.BulletText("Alt + (Z or X or C) = (change a setting sometimes)")
     tooltip("Use this for a quick workflow")
     addSeparator()
     imgui.BulletText("T = activate the big button that does stuff")
@@ -278,7 +278,7 @@ function editNotesGeneralMenu(globalVars)
     if currentMenu == "Switch Note Lanes"      then switchNoteLanesMenu() end
     if currentMenu == "Flip Notes Vertically"  then flipNotesVerticallyMenu() end
     if currentMenu == "Scale Note Spacing"     then scaleNoteSpacingMenu() end
-    if currentMenu == "Shear Note Positions"   then shearNotePositionsMenu() end
+    if currentMenu == "Shear Lane Positions"   then shearLanePositionsMenu() end
 end
 -- Creates the "Shift Notes Up/Down" menu
 function shiftNotesVerticallyMenu()
@@ -298,10 +298,10 @@ end
 -- Creates the "Shift Notes Left/Right" menu
 function shiftNotesHorizontallyMenu()
     local settingVars = {
-        shiftRight = false
+        directionRight = false
     }
     getVariables("shiftHorzSettingVars", settingVars)
-    chooseShiftDirection(settingVars)
+    chooseDirection(settingVars)
     saveVariables("shiftHorzSettingVars", settingVars)
     addSeparator()
     local buttonText = "Shift selected notes horizontally"
@@ -361,20 +361,28 @@ function scaleNoteSpacingMenu()
     local minimumNotes = 2
     simpleActionMenu(buttonText, minimumNotes, scaleNoteSpacing, nil, settingVars)
 end
--- Creates the "Shear Note Positions" menu
-function shearNotePositionsMenu()
+-- Creates the "Shear Lane Positions" menu
+function shearLanePositionsMenu()
     local settingVars = {
-        --shiftRight = false -- capy
+        directionRight = false,
+        behaviorIndex = 1,
+        scaleTypeIndex = 1,
+        intensity = 0.5,
+        milliseconds = 100
     }
     getVariables("shearPositionsSettingVars", settingVars)
-    imgui.TextWrapped("Coming soon to a chinchilla near you (check back in like a week or so)")
+    chooseDirection(settingVars)
+    addSeparator()
+    chooseBehavior(settingVars)
+    chooseScaleType(settingVars)
+    chooseIntensity(settingVars)
+    chooseMilliseconds(settingVars)
+    settingVars.milliseconds = clampToInterval(settingVars.milliseconds, 1, 10 * FUNNY_NUMBER)
     saveVariables("shearPositionsSettingVars", settingVars)
-    --[[
     addSeparator()
     local buttonText = "Shear positions of selected notes"
     local minimumNotes = 1
-    simpleActionMenu(buttonText, minimumNotes, shearNotePositions, nil, settingVars)
-    --]]
+    simpleActionMenu(buttonText, minimumNotes, shearLanePositions, nil, settingVars)
 end
 
 ---------------------------------------------------------------------------------- Edit Notes (LNs)
@@ -480,7 +488,7 @@ end
 function shiftNotesHorizontally(settingVars)
     local totalNumLanes = map.GetKeyCount()
     local laneShift = -1
-    if settingVars.shiftRight then laneShift = 1 end
+    if settingVars.directionRight then laneShift = 1 end
     local notesToAdd = {}
     local notesToRemove = state.SelectedHitObjects
     for _, note in pairs(notesToRemove) do
@@ -552,38 +560,48 @@ function scaleNoteSpacing(settingVars)
     end
     removeAndAddNotes(notesToRemove, notesToAdd)
 end
--- Scales a percent value based on the selected scale type
--- Scaling graphs on Desmos: https://www.desmos.com/calculator/oawkj5r1vw
--- Parameters
---    settingVars : list of variables used for the current menu [Table]
---    percent     : percent value to scale [Int/Float]
-function scalePercent(settingVars, percent)
-    local behaviorType = BEHAVIORS[settingVars.behaviorIndex]
-    local speedUpType = behaviorType == "Speed up"
-    local workingPercent = percent
-    if speedUpType then workingPercent = 1 - percent end
-    local newPercent
-    local a = settingVars.intensity
-    local scaleType = SCALE_TYPES[settingVars.scaleTypeIndex]
-    if scaleType == "Exponential" then
-        local exponent = a * (workingPercent - 1)
-        newPercent = (workingPercent * math.exp(exponent))
-    elseif scaleType == "Polynomial" then
-        local exponent = a + 1
-        newPercent = workingPercent ^ exponent
-    elseif scaleType == "Circular" then
-        local b = 1 / (a ^ (a + 1))
-        local radicand = (b + 1) ^ 2 + b ^ 2 - (workingPercent + b) ^ 2
-        newPercent = b + 1 - math.sqrt(radicand)
-    end
-    if speedUpType then newPercent = 1 - newPercent end
-    return clampToInterval(newPercent, 0, 1)
-end
 -- Shears positions across the lanes of selected notes
 -- Parameters
 --    settingVars : list of variables used for the current menu [Table]
-function shearNotePositions(settingVars)
-    local capy = 0 -- capy
+function shearLanePositions(settingVars)
+    local totalNumLanes = map.GetKeyCount()
+    local notesToAdd = {}
+    local notesToRemove = state.SelectedHitObjects
+    local isLaneSelected = {}
+    for _, note in pairs(notesToRemove) do
+        isLaneSelected[note.Lane] = true
+    end
+    local totalLanesSelected = 0
+    for lane = 1, totalNumLanes do
+        if isLaneSelected[lane] then
+            totalLanesSelected = totalLanesSelected + 1
+        end
+    end
+    local totalInterval = settingVars.milliseconds
+    local shearAmounts = generateLinearSet(0, totalInterval, totalLanesSelected)
+    if not settingVars.directionRight then shearAmounts = getReverseList(shearAmounts) end
+    for i = 1, #shearAmounts do
+        local oldShearAmount = shearAmounts[i]
+        local oldPercentFromStart = oldShearAmount / totalInterval
+        local newPercentFromStart = scalePercent(settingVars, oldPercentFromStart)
+        local newShearAmount = newPercentFromStart * totalInterval
+        shearAmounts[i] = newShearAmount
+    end
+    local laneToShearAmount = {}
+    for lane = 1, totalNumLanes do
+        if isLaneSelected[lane] then
+            laneToShearAmount[lane] = table.remove(shearAmounts, 1)
+        end
+    end
+    for _, note in pairs(notesToRemove) do
+        local shearAmount = laneToShearAmount[note.Lane]
+        local noteIsLN = isLN(note)
+        local newStartTime = note.StartTime + shearAmount
+        local newEndTime = 0
+        if noteIsLN then newEndTime = note.EndTime + shearAmount end
+        addNoteToList(notesToAdd, note, newStartTime, nil, newEndTime, nil, nil)
+    end
+    removeAndAddNotes(notesToRemove, notesToAdd)
 end
 -- Applies the full LN mod onto selected notes
 function applyFullLN(settingVars)
@@ -1007,21 +1025,21 @@ end
 --    currentNoteTime : millisecond time of the current note [Int]
 --    nextNoteTime    : millisecond time of the next note [Int]
 function calculateLNGapTime(settingVars, currentNoteTime, nextNoteTime)
-        local beatSnap = settingVars.beatSnapGap
-        if beatSnap == 0 then return settingVars.minLNGapTime end
-        
-        local timingPointAtCurrentNote = map.GetTimingPointAt(currentNoteTime)
-        if timingPointAtCurrentNote == nil then timingPointAtCurrentNote = map.TimingPoints[1] end
-        local timingPointAtNextNote = map.GetTimingPointAt(nextNoteTime)
-        if timingPointAtNextNote == nil then timingPointAtNextNote = timingPointAtCurrentNote end
-        
-        -- The larger BPM gives us the shortest duration to use for calculations that are safe
-        local maxBPM = math.max(timingPointAtCurrentNote.Bpm, timingPointAtNextNote.Bpm)
-        local millisecondsInMinute = 60000
-        local snapGapDuration = millisecondsInMinute / (beatSnap * maxBPM)
-        local roundedSnapGapDuration = round(snapGapDuration, 0)
-        local timeGap = math.max(settingVars.minLNGapTime, roundedSnapGapDuration)
-        return timeGap
+    local beatSnap = settingVars.beatSnapGap
+    if beatSnap == 0 then return settingVars.minLNGapTime end
+    
+    local timingPointAtCurrentNote = map.GetTimingPointAt(currentNoteTime)
+    if timingPointAtCurrentNote == nil then timingPointAtCurrentNote = map.TimingPoints[1] end
+    local timingPointAtNextNote = map.GetTimingPointAt(nextNoteTime)
+    if timingPointAtNextNote == nil then timingPointAtNextNote = timingPointAtCurrentNote end
+    
+    -- The larger BPM gives us the shortest duration to use for calculations that are safe
+    local maxBPM = math.max(timingPointAtCurrentNote.Bpm, timingPointAtNextNote.Bpm)
+    local millisecondsInMinute = 60000
+    local snapGapDuration = millisecondsInMinute / (beatSnap * maxBPM)
+    local roundedSnapGapDuration = round(snapGapDuration, 0)
+    local timeGap = math.max(settingVars.minLNGapTime, roundedSnapGapDuration)
+    return timeGap
 end
 -- Returns whether or not there's enough selected notes [Boolean]
 -- Parameters
@@ -1127,6 +1145,50 @@ function setTooltipActive() state.SetValue("uiTooltipActive", true) end
 
 ---------------------------------------------------------------------------------------------- Math
 
+-- Returns a set of linear values [Table]
+-- Parameters
+--    startValue : starting value of the linear set [Int/Float]
+--    endValue   : ending value of the linear set [Int/Float]
+--    numValues  : total number of values in the linear set [Int]
+function generateLinearSet(startValue, endValue, numValues)
+    local linearSet = {startValue}
+    if numValues < 2 then return linearSet end
+    
+    local increment = (endValue - startValue) / (numValues - 1)
+    for i = 1, (numValues - 1) do
+        table.insert(linearSet, startValue + i * increment)
+    end
+    return linearSet
+end
+-- Scales a percent value based on the selected scale type
+-- Scaling graphs on Desmos: https://www.desmos.com/calculator/oawkj5r1vw
+-- Parameters
+--    settingVars : list of variables used for the current menu [Table]
+--    percent     : percent value to scale [Int/Float]
+function scalePercent(settingVars, percent)
+    local behaviorType = BEHAVIORS[settingVars.behaviorIndex]
+    local speedUpType = behaviorType == "Speed up"
+    local workingPercent = percent
+    if speedUpType then workingPercent = 1 - percent end
+    local newPercent
+    local a = settingVars.intensity
+    local scaleType = SCALE_TYPES[settingVars.scaleTypeIndex]
+    if scaleType == "Exponential" then
+        local exponent = a * (workingPercent - 1)
+        newPercent = (workingPercent * math.exp(exponent))
+    elseif scaleType == "Polynomial" then
+        local exponent = a + 1
+        newPercent = workingPercent ^ exponent
+    elseif scaleType == "Circular" then
+        if a == 0 then return percent end
+        
+        local b = 1 / (a ^ (a + 1))
+        local radicand = (b + 1) ^ 2 + b ^ 2 - (workingPercent + b) ^ 2
+        newPercent = b + 1 - math.sqrt(radicand)
+    end
+    if speedUpType then newPercent = 1 - newPercent end
+    return clampToInterval(newPercent, 0, 1)
+end
 -- Returns the average of two numbers [Int/Float]
 -- Parameters
 --    x : first number [Int/Float]
@@ -1181,6 +1243,17 @@ function sortAscendingStartTime(a, b) return a.StartTime < b.StartTime end
 
 --------------------------------------------------------------------------------- General utilities
 
+-- Constructs a new reverse-order list from an existing list
+-- Returns the reversed list [Table]
+-- Parameters
+--    list : list to be reversed [Table]
+function getReverseList(list)
+    local reverseList = {}
+    for i = 1, #list do
+        table.insert(reverseList, list[#list + 1 - i])
+    end
+    return reverseList
+end
 -- Returns an ascending list of whole numbers starting from 1 [Table]
 -- Parameters
 --    finalNumber : final number of the list [Int]
@@ -1304,19 +1377,19 @@ end
 function chooseScaleType(settingVars)
     settingVars.scaleTypeIndex = combo("Scale Type", SCALE_TYPES, settingVars.scaleTypeIndex)
 end
--- Lets you choose the direction to shift notes
+-- Lets you choose a direction
 -- Parameters
 --    settingVars : list of variables used for the current menu [Table]
-function chooseShiftDirection(settingVars)
+function chooseDirection(settingVars)
     imgui.AlignTextToFramePadding()
     imgui.Text("Direction:")
     imgui.SameLine(0, RADIO_BUTTON_SPACING)
-    if imgui.RadioButton("Left", not settingVars.shiftRight) then
-        settingVars.shiftRight = false
+    if imgui.RadioButton("Left", not settingVars.directionRight) then
+        settingVars.directionRight = false
     end
     imgui.SameLine(0, RADIO_BUTTON_SPACING)
-    if imgui.RadioButton("Right", settingVars.shiftRight) then
-        settingVars.shiftRight = true
+    if imgui.RadioButton("Right", settingVars.directionRight) then
+        settingVars.directionRight = true
     end
 end
 -- Lets you choose the style theme of the plugin
