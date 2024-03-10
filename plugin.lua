@@ -126,7 +126,8 @@ MENUS = {                           -- high-level menus for the plugin
 SCALE_TYPES = {                     -- ways to scale note spacing
     "Exponential",
     "Polynomial",
-    "Circular"
+    "Circular",
+    "Sine Power"
 }
 STYLE_THEMES = {                    -- available style/appearance themes for the plugin
     "Rounded",
@@ -278,7 +279,7 @@ end
 -- Creates the "Place Notes By Number" menu
 function placeNotesBetweenNumberMenu()
     local settingVars = {
-        noteCount = 1
+        noteCount = 3
     }
     getVariables("placeNotesBetweenNumberVars", settingVars)
     chooseNoteCount(settingVars)
@@ -1265,7 +1266,7 @@ function generateLinearSet(startValue, endValue, numValues)
     return linearSet
 end
 -- Scales a percent value based on the selected scale type
--- Scaling graphs on Desmos: https://www.desmos.com/calculator/nw0lpykb9r
+-- Scaling graphs on Desmos: https://www.desmos.com/calculator/esbecrvgnk
 -- Parameters
 --    settingVars : list of variables used for the current menu [Table]
 --    percent     : percent value to scale [Int/Float]
@@ -1289,6 +1290,10 @@ function scalePercent(settingVars, percent)
         local b = 1 / (a ^ (a + 1))
         local radicand = (b + 1) ^ 2 + b ^ 2 - (workingPercent + b) ^ 2
         newPercent = b + 1 - math.sqrt(radicand)
+    elseif scaleType == "Sine Power" then
+        local exponent = math.log(a + 1)
+        local sineInside = math.sin(math.pi * (workingPercent - 1) / 2) + 1
+        newPercent = workingPercent * (sineInside ^ exponent)
     end
     if speedUpType then newPercent = 1 - newPercent end
     return clampToInterval(newPercent, 0, 1)
