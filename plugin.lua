@@ -60,6 +60,8 @@ LANE_BUTTON_SIZE = {30, 30}         -- dimensions of the button representing a n
 
 MIN_RGB_CYCLE_TIME = 6              -- minimum seconds for one complete RGB color cycle
 MAX_RGB_CYCLE_TIME = 300            -- maximum seconds for one complete RGB color cycle
+MIN_LN_LENGTH = 36                  -- default minimum millisecond duration of LNs
+MIN_LN_GAP_LENGTH = 36              -- default minimum millisecond duration of LN gaps
 SMALL_NUMBER_TOLERANCE = 0.001      -- smallest number allowed for specific calculations
 
 -------------------------------------------------------------------------------------- Menu related
@@ -343,11 +345,13 @@ function scaleNoteSpacingMenu()
         behaviorIndex = 1,
         scaleTypeIndex = 1,
         intensity = 0.5,
+        minLNLength = MIN_LN_LENGTH
     }
     getVariables("scaleSpacingSettingVars", settingVars)
     chooseBehavior(settingVars)
     chooseScaleType(settingVars)
     chooseIntensity(settingVars)
+    chooseMinLNLength(settingVars)
     saveVariables("scaleSpacingSettingVars", settingVars)
     addSeparator()
     local invalidIntensity = settingVars.intensity < SMALL_NUMBER_TOLERANCE
@@ -395,8 +399,8 @@ end
 function applyFullLNMenu()
     local settingVars = {
         beatSnapGap = 4,
-        minLNLength = 36,
-        minLNGapTime = 36
+        minLNLength = MIN_LN_LENGTH,
+        minLNGapTime = MIN_LN_GAP_LENGTH
     }
     getVariables("applyFullLNSettingVars", settingVars)
     chooseBeatSnapGap(settingVars)
@@ -412,8 +416,8 @@ end
 function applyInverseLNMenu()
     local settingVars = {
         beatSnapGap = 4,
-        minLNLength = 36,
-        minLNGapTime = 36
+        minLNLength = MIN_LN_LENGTH,
+        minLNGapTime = MIN_LN_GAP_LENGTH
     }
     getVariables("applyInverseLNSettingVars", settingVars)
     chooseBeatSnapGap(settingVars)
@@ -541,6 +545,8 @@ function scaleNoteSpacing(settingVars)
             local endPercentFromStart = endTimeFromStart / totalIntervalTime
             local newEndPercentFromStart = scalePercent(settingVars, endPercentFromStart)
             newEndTime = boundaryTimes.min + newEndPercentFromStart * totalIntervalTime
+            local newLNLength = newEndTime - newStartTime
+            if newLNLength < settingVars.minLNLength then newEndTime = 0 end
         end
         addNoteToList(notesToAdd, note, newStartTime, nil, newEndTime, nil, nil)
     end
@@ -593,7 +599,7 @@ function applyFullLN(settingVars)
     end
     for lane = 1, totalNumLanes do
         local notesInCurrentLane = notesInLanes[lane]
-        convertLaneToInverseLN(settingVars, notesToAdd, notesInCurrentLane)
+        convertLaneToFullLN(settingVars, notesToAdd, notesInCurrentLane)
     end
     removeAndAddNotes(notesToRemove, notesToAdd)
 end
@@ -619,6 +625,8 @@ function convertLaneToFullLN(settingVars, notesToAdd, notesInSameLane)
         if newEndTimeUnacceptable then newEndTime = 0 end
         addNoteToList(notesToAdd, currentNote, nil, nil, newEndTime, nil, nil)
     end
+    local lastNote = notesInSameLane[#notesInSameLane]
+    addNoteToList(notesToAdd, lastNote, nil, nil, nil, nil, nil)
 end
 -- Applies the inverse LN mod onto selected notes
 -- Parameters
