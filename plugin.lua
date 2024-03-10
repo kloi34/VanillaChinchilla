@@ -41,7 +41,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 ---------------------------------------------------------------------------------------------------
 
 PLUGIN_NAME = "VanillaChinchilla"
-FUNNY_NUMBER = 727 -- arbitrary funny prime number
+FUNNY_NUMBER = 727 -- arbitrary funny prime number, used as an arbitrary large value
 
 ----------------------------------------------------------------------------------------------- GUI
 
@@ -109,6 +109,10 @@ MENUS = {                           -- high-level menus for the plugin
     --"Place Notes (From Scratch)",
     "Edit Notes (General)",
     "Edit Notes (LNs)"
+}
+SCALE_TYPES = {                     -- ways to scale note spacing
+    "Exponential",
+    "Polynomial",
 }
 STYLE_THEMES = {                    -- available style/appearance themes for the plugin
     "Rounded",
@@ -330,17 +334,20 @@ end
 -- Creates the "Scale Note Spacing" menu
 function scaleNoteSpacingMenu()
     local settingVars = {
-        --shiftRight = false -- capy
+        scaleTypeIndex = 1,
+        intensity = 0.5,
     }
     getVariables("scaleSpacingSettingVars", settingVars)
-    imgui.TextWrapped("Coming soon to a chinchilla near you (check back in like a week or so)")
+    chooseScaleType(settingVars)
+    chooseIntensity(settingVars)
     saveVariables("scaleSpacingSettingVars", settingVars)
-    --[[
     addSeparator()
+    local invalidIntensity = settingVars.intensity == 0
+    if invalidIntensity then imgui.Text(":jerry:") return end
+    
     local buttonText = "Scale spacing between selected notes"
     local minimumNotes = 2
     simpleActionMenu(buttonText, minimumNotes, scaleNoteSpacing, nil, settingVars)
-    --]]
 end
 -- Creates the "Shear Note Positions" menu
 function shearNotePositionsMenu()
@@ -510,7 +517,43 @@ end
 -- Parameters
 --    settingVars : list of variables used for the current menu [Table]
 function scaleNoteSpacing(settingVars)
-    local capy = 0 -- capy
+    local notesToAdd = {}
+    local notesToRemove = state.SelectedHitObjects
+    local boundaryTimes = getBoundaryTimes(notesToRemove)
+    local totalIntervalTime = boundaryTimes.max - boundaryTimes.min
+    for _, note in pairs(notesToRemove) do
+        local startTimeFromStart = note.StartTime - boundaryTimes.min
+        local startPercentFromStart = startTimeFromStart / totalIntervalTime
+        local newStartPercentFromStart = scalePercent(settingVars, startPercentFromStart)
+        local newStartTime = boundaryTimes.min + newStartPercentFromStart * totalIntervalTime
+        local newEndTime = 0
+        local noteIsLN = isLN(note)
+        if noteIsLN then
+            local endTimeFromStart = note.EndTime - boundaryTimes.min
+            local endPercentFromStart = endTimeFromStart / totalIntervalTime
+            local newEndPercentFromStart = scalePercent(settingVars, endPercentFromStart)
+            newEndTime = boundaryTimes.min + newEndPercentFromStart * totalIntervalTime
+        end
+        addNoteToList(notesToAdd, note, newStartTime, nil, newEndTime, nil, nil)
+    end
+    removeAndAddNotes(notesToRemove, notesToAdd)
+end
+-- Scales a percent value based on the selected scale type
+-- Parameters
+--    settingVars : list of variables used for the current menu [Table]
+--    percent     : percent value to scale [Int/Float]
+function scalePercent(settingVars, percent)
+    local newPercent
+    local a = settingVars.intensity
+    local scaleType = SCALE_TYPES[settingVars.scaleTypeIndex]
+    if scaleType == "Exponential" then
+        local exponent = a * (percent - 1)
+        newPercent = (percent * math.exp(exponent))
+    elseif scaleType == "Polynomial" then
+        local exponent = a + 1
+        newPercent = percent ^ exponent
+    end
+    return clampToInterval(newPercent, 0, 1)
 end
 -- Shears positions across the lanes of selected notes
 -- Parameters
@@ -1167,6 +1210,14 @@ function chooseColorTheme(globalVars)
     
     chooseRGBPeriod(globalVars)
 end
+-- Lets you choose the intensity of something
+-- Parameters
+--    settingVars : list of variables used for the current menu [Table]
+function chooseIntensity(settingVars)
+    _, settingVars.intensity = imgui.InputFloat("Intensity", settingVars.intensity, 0, 0,
+                                                 "%.3f")
+    settingVars.intensity = clampToInterval(settingVars.intensity, 0, FUNNY_NUMBER)
+end
 -- Lets you choose the highest-level menu
 -- Parameters
 --    globalVars : list of variables used globally across all menus [Table]
@@ -1214,6 +1265,12 @@ function chooseRGBPeriod(globalVars)
                                                "%.0f seconds")
     globalVars.rgbPeriod = clampToInterval(globalVars.rgbPeriod, MIN_RGB_CYCLE_TIME,
                                            MAX_RGB_CYCLE_TIME)
+end
+-- Lets you choose how to scale note spacing
+-- Parameters
+--    settingVars : list of variables used for the current menu [Table]
+function chooseScaleType(settingVars)
+    settingVars.scaleTypeIndex = combo("Scale Type", SCALE_TYPES, settingVars.scaleTypeIndex)
 end
 -- Lets you choose the direction to shift notes
 -- Parameters
@@ -2033,7 +2090,7 @@ function saveVariables(listName, variables)
 end
 
 ---------------------------------------------------------------------------------------------------
--- Drawing ----------------------------------------------------------------------------------------
+-- Drawing (excuse the messy code) ----------------------------------------------------------------
 ---------------------------------------------------------------------------------------------------
 
 -- Converts an RGBA color value into uint (unsigned integer) and returns the converted value [Int]
@@ -2139,7 +2196,7 @@ end
 function drawChinchillaAnimationFrame6(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
                                        windowHeight)
     local bodyCenterCoords = {chinchillaXPosition, windowHeight - 294}
-    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 4)
+    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 5)
     drawMainChinchilla(o, bodyCenterCoords, chinchillaSize, chinchillaColors)
 end
 -- Draws frame 7 of the chinchilla startup animation
@@ -2152,7 +2209,7 @@ end
 function drawChinchillaAnimationFrame7(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
                                        windowHeight)
     local bodyCenterCoords = {chinchillaXPosition, windowHeight - 304}
-    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 5)
+    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 4)
     drawMainChinchilla(o, bodyCenterCoords, chinchillaSize, chinchillaColors)
 end
 -- Draws frame 8 of the chinchilla startup animation
@@ -2217,7 +2274,7 @@ end
 function drawChinchillaAnimationFrame12(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
                                         windowHeight)
     local bodyCenterCoords = {chinchillaXPosition, windowHeight - 294}
-    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 4)
+    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 5)
     drawMainChinchilla(o, bodyCenterCoords, chinchillaSize, chinchillaColors)
 end
 -- Draws frame 13 of the chinchilla startup animation
@@ -2230,7 +2287,7 @@ end
 function drawChinchillaAnimationFrame13(o, chinchillaSize, chinchillaXPosition, chinchillaColors,
                                         windowHeight)
     local bodyCenterCoords = {chinchillaXPosition, windowHeight - 284}
-    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 5)
+    drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, 4)
     drawMainChinchilla(o, bodyCenterCoords, chinchillaSize, chinchillaColors)
 end
 -- Draws frame 14 of the chinchilla startup animation
@@ -2458,6 +2515,12 @@ function addVectors(vector1, vector2)
     end
     return newVector
 end
+-- Draws the tail of the chinchilla
+-- Parameters
+--    o                : [imgui overlay drawlist]
+--    bodyCenterCoords : coordinates of the center of the body of the chinchilla [Table]
+--    chinchillaColors : list of uint (unsigned integer) color values of the chinchilla [Table]
+--    frameNum         : frame of the tail [Int]
 function drawChinchillaTail(o, bodyCenterCoords, chinchillaColors, frameNum)
     local p1 = relativeCoords(bodyCenterCoords, 28, 34)
     local p2
