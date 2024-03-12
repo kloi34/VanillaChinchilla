@@ -1,5 +1,5 @@
 --[[
-VanillaChinchilla v1.1 beta: Quaver plugin for placing/editing notes
+VanillaChinchilla v1.2 beta: Quaver plugin for placing/editing notes
 Copyright (C) 2024  kloi34
 
 This program is free software: you can redistribute it and/or modify
@@ -54,6 +54,7 @@ PADDING_WIDTH = 8                   -- value determining window and frame paddin
 RADIO_BUTTON_SPACING = 7.5          -- value determining spacing between radio buttons
 SAMELINE_SPACING = 5                -- value determining spacing between GUI items on the same row
 ACTION_BUTTON_SIZE = {255, 42}      -- dimensions of the button that does important things
+PLOT_GRAPH_SIZE = {255, 100}        -- dimensions of plot graphs
 HALF_BUTTON_SIZE = {125, 30}        -- dimensions of a button that does kinda important things
 SECONDARY_BUTTON_SIZE = {60, 24}    -- dimensions of a button that does less important things
 LANE_BUTTON_SIZE = {30, 30}         -- dimensions of the button representing a note lane
@@ -64,7 +65,6 @@ MIN_RGB_CYCLE_TIME = 6              -- minimum seconds for one complete RGB colo
 MAX_RGB_CYCLE_TIME = 300            -- maximum seconds for one complete RGB color cycle
 MIN_LN_LENGTH = 36                  -- default minimum millisecond duration of LNs
 MIN_LN_GAP_LENGTH = 36              -- default minimum millisecond duration of LN gaps
-SMALL_NUMBER_TOLERANCE = 0.001      -- smallest number allowed for specific calculations
 
 -------------------------------------------------------------------------------------- Menu related
 
@@ -385,13 +385,18 @@ function flipNotesVerticallyMenu()
 end
 -- Creates the "Scale Note Spacing" menu
 function scaleNoteSpacingMenu()
+    local variablesListName = "scaleSpacingSettingVars"
     local settingVars = {
         behaviorIndex = 1,
         scaleTypeIndex = 1,
         intensity = 0.5,
-        minLNLength = MIN_LN_LENGTH
+        minLNLength = MIN_LN_LENGTH,
+        demoNotes = 5,
+        demoTotalDistances = {},
+        demoTotalDistScale = {}
     }
-    getVariables("scaleSpacingSettingVars", settingVars)
+    getVariables(variablesListName, settingVars)
+    showProjectedOutputWindow(settingVars)
     chooseBehavior(settingVars)
     settingVars.behaviorIndex = getNewComboIndexOnKeyPress(keys.Z, settingVars.behaviorIndex,
                                                            BEHAVIORS)
@@ -400,9 +405,11 @@ function scaleNoteSpacingMenu()
                                                             SCALE_TYPES)
     chooseIntensity(settingVars)
     chooseMinLNLength(settingVars)
-    saveVariables("scaleSpacingSettingVars", settingVars)
+    local needDemoInfoUpdate = checkVariablesChanged(variablesListName, settingVars)
+    if needDemoInfoUpdate then updateDemoInfo(settingVars) end
+    saveVariables(variablesListName, settingVars)
     addSeparator()
-    local invalidIntensity = settingVars.intensity < SMALL_NUMBER_TOLERANCE
+    local invalidIntensity = settingVars.intensity == 0
     if invalidIntensity then imgui.Text(":jerry:") return end
     
     local buttonText = "Scale spacing between selected notes"
@@ -411,14 +418,19 @@ function scaleNoteSpacingMenu()
 end
 -- Creates the "Shear Lane Positions" menu
 function shearLanePositionsMenu()
+    local variablesListName = "shearPositionsSettingVars"
     local settingVars = {
         directionRight = false,
         behaviorIndex = 1,
         scaleTypeIndex = 1,
         intensity = 0.5,
-        milliseconds = 100
+        milliseconds = 100,
+        demoNotes = map.GetKeyCount(),
+        demoTotalDistances = {},
+        demoTotalDistScale = {}
     }
-    getVariables("shearPositionsSettingVars", settingVars)
+    getVariables(variablesListName, settingVars)
+    showProjectedOutputWindow(settingVars)
     chooseDirection(settingVars)
     settingVars.directionRight = getNewBooleanOnKeyPress(keys.Z, settingVars.directionRight)
     addSeparator()
@@ -431,7 +443,9 @@ function shearLanePositionsMenu()
     chooseIntensity(settingVars)
     chooseMilliseconds(settingVars)
     settingVars.milliseconds = clampToInterval(settingVars.milliseconds, 1, 10 * FUNNY_NUMBER)
-    saveVariables("shearPositionsSettingVars", settingVars)
+    local needDemoInfoUpdate = checkVariablesChanged(variablesListName, settingVars)
+    if needDemoInfoUpdate then updateDemoInfo(settingVars) end
+    saveVariables(variablesListName, settingVars)
     addSeparator()
     local buttonText = "Shear positions of selected notes"
     local minimumNotes = 1
@@ -1099,6 +1113,65 @@ function getAdjustLNLengthsButtonText(settingVars)
     buttonTextTable[#buttonTextTable + 1] = " ms"
     return table.concat(buttonTextTable)
 end
+-- Updates the demo info stored in settingVars
+-- Parameters
+--    settingVars : list of variables used for the current menu [Table]
+function updateDemoInfo(settingVars)
+    settingVars.demoTotalDistances = {}
+    local percents = generateLinearSet(0, 1, settingVars.demoNotes) 
+    for i = 1, #percents do
+        local oldPercent = percents[i]
+        local newPercent = scalePercent(settingVars, oldPercent)
+        settingVars.demoTotalDistances[i] = newPercent
+    end
+    settingVars.demoTotalDistScale = getPlotScale(settingVars.demoTotalDistances)
+    local shearingNotesLeft = settingVars.directionRight == false -- accounts for nil value 
+    if shearingNotesLeft then
+        settingVars.demoTotalDistances = getReverseList(settingVars.demoTotalDistances)
+    end
+end
+-- Makes the window showing projected outputs 
+-- Parameters
+--    settingVars : list of variables used for the current menu [Table]
+function showProjectedOutputWindow(settingVars)
+    local windowName = "Demo Output"
+    autoOpenNextWindow(windowName)
+    imgui.Begin(windowName, imgui_window_flags.AlwaysAutoResize)
+    imgui.PushItemWidth(DEFAULT_WIDGET_WIDTH)
+    imgui.Text("Projected Output:")
+    plotBarGraph("##demoGraph", settingVars.demoTotalDistances, settingVars.demoTotalDistScale)
+    chooseDemoNotes(settingVars)
+    imgui.End()
+end
+-- Calculates and returns a list of the minimum and maximum scale for a plot [Table]
+-- Parameters
+--    plotValues : set of numbers to calculate plot scale for [Table]
+function getPlotScale(plotValues)
+    local min = math.min(table.unpack(plotValues))
+    local max = math.max(table.unpack(plotValues))
+    local absMax = math.max(math.abs(min), math.abs(max))
+    -- as the default, set the plot range to +- the absolute max value
+    local minScale = -absMax
+    local maxScale = absMax
+    -- restrict the plot range to non-positive values when all values are non-positive
+    if max <= 0 then maxScale = 0 end
+    -- restrict the plot range to non-negative values when all values are non-negative
+    if min >= 0 then minScale = 0 end
+    return {min = minScale, max = maxScale}
+end
+-- Creates a bar graph
+-- Parameters
+--    title  : title of the graph [String]
+--    values : list of values to plot [Table]
+--    scales : list of min and max scales [Table]
+function plotBarGraph(title, values, scales)
+    if #values == 0 then return end
+    
+    local minScale = scales.min
+    local maxScale = scales.max
+    local plotSize = PLOT_GRAPH_SIZE
+    imgui.PlotHistogram(title, values, #values, 0, title, minScale, maxScale, plotSize)
+end
 
 --------------------------------------------------------------------------------------- Map related
 
@@ -1269,7 +1342,7 @@ function generateLinearSet(startValue, endValue, numValues)
     return linearSet
 end
 -- Scales a percent value based on the selected scale type
--- Scaling graphs on Desmos: https://www.desmos.com/calculator/teeizz9l1t
+-- Scaling graphs on Desmos: https://www.desmos.com/calculator/z00xjksfnk
 -- Parameters
 --    settingVars : list of variables used for the current menu [Table]
 --    percent     : percent value to scale [Int/Float]
@@ -1312,6 +1385,8 @@ function scalePercent(settingVars, percent)
         URL (version: 2023-11-04): https://math.stackexchange.com/q/4800509
         --]]
         if a == 0 then return percent end
+        if a == 1 then a = a + -1e727 end
+        
         local c = a / (1 - a)
         newPercent = (workingPercent ^ 2) * (1 + c) / (workingPercent + c)
     end
@@ -1444,12 +1519,42 @@ function chooseColorTheme(globalVars)
     
     chooseRGBPeriod(globalVars)
 end
+-- Lets you choose the number of demo notes
+-- Parameters
+--    settingVars : list of variables used for the current menu [Table]
+function chooseDemoNotes(settingVars)
+    local maxNotes = FUNNY_NUMBER
+    local minNotes = 3
+    local shearingNotes = settingVars.directionRight ~= nil 
+    if shearingNotes then
+        maxNotes = map.GetKeyCount()
+        minNotes = 2
+    end
+    
+    _, settingVars.demoNotes = imgui.InputInt("Demo Notes", settingVars.demoNotes, 1, 1)
+    settingVars.demoNotes = clampToInterval(settingVars.demoNotes, minNotes, maxNotes)
+end
+-- Lets you choose a direction
+-- Parameters
+--    settingVars : list of variables used for the current menu [Table]
+function chooseDirection(settingVars)
+    imgui.AlignTextToFramePadding()
+    imgui.Text("Direction:")
+    imgui.SameLine(0, RADIO_BUTTON_SPACING)
+    if imgui.RadioButton("Left", not settingVars.directionRight) then
+        settingVars.directionRight = false
+    end
+    imgui.SameLine(0, RADIO_BUTTON_SPACING)
+    if imgui.RadioButton("Right", settingVars.directionRight) then
+        settingVars.directionRight = true
+    end
+end
 -- Lets you choose the intensity of something
 -- Parameters
 --    settingVars : list of variables used for the current menu [Table]
 function chooseIntensity(settingVars)
-    _, settingVars.intensity = imgui.InputFloat("Intensity", settingVars.intensity, 0, 0,
-                                                 "%.3f")
+    _, settingVars.intensity = imgui.SliderFloat("Intensity", settingVars.intensity, 0, 2, "%.3f")
+    helpMarker("Ctrl + click the slider to input any specific positive value")
     settingVars.intensity = clampToInterval(settingVars.intensity, 0, FUNNY_NUMBER)
 end
 -- Lets you choose the highest-level menu
@@ -1512,21 +1617,6 @@ end
 --    settingVars : list of variables used for the current menu [Table]
 function chooseScaleType(settingVars)
     settingVars.scaleTypeIndex = combo("Scale Type", SCALE_TYPES, settingVars.scaleTypeIndex)
-end
--- Lets you choose a direction
--- Parameters
---    settingVars : list of variables used for the current menu [Table]
-function chooseDirection(settingVars)
-    imgui.AlignTextToFramePadding()
-    imgui.Text("Direction:")
-    imgui.SameLine(0, RADIO_BUTTON_SPACING)
-    if imgui.RadioButton("Left", not settingVars.directionRight) then
-        settingVars.directionRight = false
-    end
-    imgui.SameLine(0, RADIO_BUTTON_SPACING)
-    if imgui.RadioButton("Right", settingVars.directionRight) then
-        settingVars.directionRight = true
-    end
 end
 -- Lets you choose the style theme of the plugin
 -- Parameters
@@ -2319,6 +2409,17 @@ function getVariables(listName, variables)
     for key, value in pairs(variables) do
         variables[key] = state.GetValue(listName..key) or value
     end
+end
+-- Returns whether any variables from a list of variables has changed from the state [Boolean]
+-- Parameters
+--    listName  : name of the variable list [String]
+--    variables : list of variables [Table]
+function checkVariablesChanged(listName, variables)
+    for key, newValue in pairs(variables) do
+        local oldValue = state.GetValue(listName..key)
+        if oldValue ~= newValue then return true end
+    end
+    return false
 end
 -- Saves a list of variables to the state
 -- Parameters
