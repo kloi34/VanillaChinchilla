@@ -366,10 +366,11 @@ function switchNoteLanesMenu()
     updateSelectedLaneIndexes(settingVars)
     addSeparator()
     button("Randomize", HALF_BUTTON_SIZE, randomizeOldLanesInNewLanes, nil, settingVars)
-    executeFunctionOnKeyPress(keys.Z, randomizeOldLanesInNewLanes, nil, settingVars)
+    executeFunctionOnKeyPress(keys.Z, true, randomizeOldLanesInNewLanes, nil, settingVars)
     imgui.SameLine(0, SAMELINE_SPACING)
     button("Reset", HALF_BUTTON_SIZE, resetOldLanesInNewLanes, nil, settingVars)
-    executeFunctionOnKeyPress(keys.X, resetOldLanesInNewLanes, nil, settingVars)
+    executeFunctionOnKeyPress(keys.X, true, resetOldLanesInNewLanes, nil, settingVars)
+    
     saveVariables("switchLanesSettingVars", settingVars)
     addSeparator()
     local buttonText = "Switch lanes of selected notes"
@@ -917,15 +918,23 @@ end
 -- Executes a function if a key is pressed
 -- Parameters
 --    key         : key to be pressed [keys.~, from Quaver's MonoGame.Framework.Input.Keys enum]
+--    requireAlt  : whether the Alt key is required to be held down [Boolean]
 --    func        : function to execute once key is pressed [Function]
 --    globalVars  : list of variables used globally across all menus [Table]
 --    settingVars : list of variables used for the current menu [Table]
-function executeFunctionOnKeyPress(key, func, globalVars, settingVars)
+function executeFunctionOnKeyPress(key, requireAlt, func, globalVars, settingVars)
+    local altKeyDown = utils.IsKeyDown(keys.LeftAlt) or
+                       utils.IsKeyDown(keys.RightAlt)
+    if requireAlt and (not altKeyDown) then return end
+    
     if not utils.IsKeyPressed(key) then return end
     
     if globalVars and settingVars then func(globalVars, settingVars) return end
+    
     if globalVars then func(globalVars) return end
+    
     if settingVars then func(settingVars) return end
+    
     func()
 end
 -- Returns the new combo index when ALT + a specific key is pressed [Int]
@@ -1316,7 +1325,7 @@ function simpleActionMenu(buttonText, minimumNotes, actionfunc, globalVars, sett
     
     button(buttonText, ACTION_BUTTON_SIZE, actionfunc, globalVars, settingVars)
     tooltip("Press ' T ' on your keyboard to do the same thing as this button")
-    executeFunctionOnKeyPress(keys.T, actionfunc, globalVars, settingVars)
+    executeFunctionOnKeyPress(keys.T, false, actionfunc, globalVars, settingVars)
 end
 -- Returns whether or not a tooltip is already active [Boolean]
 function isTooltipAlreadyActive() return state.GetValue("uiTooltipActive") end
