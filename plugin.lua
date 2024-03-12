@@ -425,7 +425,7 @@ function shearLanePositionsMenu()
         behaviorIndex = 1,
         scaleTypeIndex = 1,
         intensity = 0.5,
-        milliseconds = 100,
+        milliseconds = 200,
         demoNotes = map.GetKeyCount(),
         demoTotalDistances = {},
         demoTotalDistScale = {}
@@ -443,7 +443,6 @@ function shearLanePositionsMenu()
                                                             SCALE_TYPES)
     chooseIntensity(settingVars)
     chooseMilliseconds(settingVars)
-    settingVars.milliseconds = clampToInterval(settingVars.milliseconds, 1, 10 * FUNNY_NUMBER)
     local needDemoInfoUpdate = checkVariablesChanged(variablesListName, settingVars)
     if needDemoInfoUpdate then updateDemoInfo(settingVars) end
     saveVariables(variablesListName, settingVars)
@@ -1539,7 +1538,6 @@ function chooseDemoNotes(settingVars)
         maxNotes = map.GetKeyCount()
         minNotes = 2
     end
-    
     _, settingVars.demoNotes = imgui.InputInt("Demo Notes", settingVars.demoNotes, 1, 1)
     settingVars.demoNotes = clampToInterval(settingVars.demoNotes, minNotes, maxNotes)
 end
@@ -1863,7 +1861,6 @@ function setBarbieColors()
     local white = {0.95, 0.85, 0.87, 1.00}
     local blue = {0.37, 0.64, 0.84, 1.00}
     local pinkTint = {1.00, 0.86, 0.86, 0.40}
-    
     imgui.PushStyleColor( imgui_col.WindowBg,               pink     )
     imgui.PushStyleColor( imgui_col.PopupBg,                { 0.08, 0.08, 0.08, 0.94 } )
     imgui.PushStyleColor( imgui_col.Border,                 pinkTint )
@@ -1903,7 +1900,6 @@ function setIncognitoColors()
     local grey = {0.20, 0.20, 0.20, 1.00}
     local whiteTint = {1.00, 1.00, 1.00, 0.40}
     local red = {1.00, 0.00, 0.00, 1.00}
-    
     imgui.PushStyleColor( imgui_col.WindowBg,               black     )
     imgui.PushStyleColor( imgui_col.PopupBg,                { 0.08, 0.08, 0.08, 0.94 } )
     imgui.PushStyleColor( imgui_col.Border,                 whiteTint )
@@ -1946,7 +1942,6 @@ function setIncognitoRGBColors(rgbPeriod)
     local white = {1.00, 1.00, 1.00, 1.00}
     local grey = {0.20, 0.20, 0.20, 1.00}
     local whiteTint = {1.00, 1.00, 1.00, 0.40}
-    
     imgui.PushStyleColor( imgui_col.WindowBg,               black     )
     imgui.PushStyleColor( imgui_col.PopupBg,                { 0.08, 0.08, 0.08, 0.94 } )
     imgui.PushStyleColor( imgui_col.Border,                 rgbColor  )
@@ -1987,7 +1982,6 @@ function setTobiGlassColors()
     local buttonColor = {0.14, 0.24, 0.28, 0.80}
     local frameColor = {0.24, 0.34, 0.38, 1.00}
     local white = {1.00, 1.00, 1.00, 1.00}  
-
     imgui.PushStyleColor( imgui_col.WindowBg,               transparentBlack )
     imgui.PushStyleColor( imgui_col.PopupBg,                { 0.08, 0.08, 0.08, 0.94 } )
     imgui.PushStyleColor( imgui_col.Border,                 frameColor       )
@@ -2029,7 +2023,6 @@ function setTobiRGBGlassColors(rgbPeriod)
     local colorTint = {currentRGB.red, currentRGB.green, currentRGB.blue, 0.3}
     local transparent = {0.00, 0.00, 0.00, 0.85}
     local white = {1.00, 1.00, 1.00, 1.00}
-    
     imgui.PushStyleColor( imgui_col.WindowBg,               transparent )
     imgui.PushStyleColor( imgui_col.PopupBg,                { 0.08, 0.08, 0.08, 0.94 } )
     imgui.PushStyleColor( imgui_col.Border,                 activeColor )
@@ -2068,7 +2061,6 @@ function setGlassColors()
     local transparentWhite = {1.00, 1.00, 1.00, 0.70}
     local whiteTint = {1.00, 1.00, 1.00, 0.30}
     local white = {1.00, 1.00, 1.00, 1.00}
-    
     imgui.PushStyleColor( imgui_col.WindowBg,               transparentBlack )
     imgui.PushStyleColor( imgui_col.PopupBg,                { 0.08, 0.08, 0.08, 0.94 } )
     imgui.PushStyleColor( imgui_col.Border,                 transparentWhite )
@@ -2110,7 +2102,6 @@ function setGlassRGBColors(rgbPeriod)
     local colorTint = {currentRGB.red, currentRGB.green, currentRGB.blue, 0.3}
     local transparent = {0.00, 0.00, 0.00, 0.25}
     local white = {1.00, 1.00, 1.00, 1.00}
-    
     imgui.PushStyleColor( imgui_col.WindowBg,               transparent )
     imgui.PushStyleColor( imgui_col.PopupBg,                { 0.08, 0.08, 0.08, 0.94 } )
     imgui.PushStyleColor( imgui_col.Border,                 activeColor )
@@ -2153,7 +2144,6 @@ function setRGBGamerColors(rgbPeriod)
     local white = {1.00, 1.00, 1.00, 1.00}
     local clearWhite = {1.00, 1.00, 1.00, 0.40}
     local black = {0.00, 0.00, 0.00, 1.00}
-    
     imgui.PushStyleColor( imgui_col.WindowBg,               black         )
     imgui.PushStyleColor( imgui_col.PopupBg,                { 0.08, 0.08, 0.08, 0.94 } )
     imgui.PushStyleColor( imgui_col.Border,                 inactiveColor )
@@ -2196,7 +2186,6 @@ function setInvertedRGBGamerColors(rgbPeriod)
     local white = {1.00, 1.00, 1.00, 1.00}
     local clearBlack = {0.00, 0.00, 0.00, 0.40}
     local black = {0.00, 0.00, 0.00, 1.00}
-    
     imgui.PushStyleColor( imgui_col.WindowBg,               white         )
     imgui.PushStyleColor( imgui_col.PopupBg,                { 0.92, 0.92, 0.92, 0.94 } )
     imgui.PushStyleColor( imgui_col.Border,                 inactiveColor )
@@ -2239,7 +2228,6 @@ function setInvertedIncognitoRGBColors(rgbPeriod)
     local white = {1.00, 1.00, 1.00, 1.00}
     local grey = {0.80, 0.80, 0.80, 1.00}
     local blackTint = {0.00, 0.00, 0.00, 0.40}
-    
     imgui.PushStyleColor( imgui_col.WindowBg,               white     )
     imgui.PushStyleColor( imgui_col.PopupBg,                { 0.92, 0.92, 0.92, 0.94 } )
     imgui.PushStyleColor( imgui_col.Border,                 rgbColor  )
@@ -2279,7 +2267,6 @@ function setInvertedIncognitoColors()
     local grey = {0.80, 0.80, 0.80, 1.00}
     local blackTint = {0.00, 0.00, 0.00, 0.40}
     local notRed = {0.00, 1.00, 1.00, 1.00}
-    
     imgui.PushStyleColor( imgui_col.WindowBg,               white     )
     imgui.PushStyleColor( imgui_col.PopupBg,                { 0.92, 0.92, 0.92, 0.94 } )
     imgui.PushStyleColor( imgui_col.Border,                 blackTint )
