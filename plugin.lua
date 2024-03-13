@@ -89,7 +89,7 @@ COLOR_THEMES = {                    -- available color themes for the plugin
     "BGR + otingocnI",  -- 14
     "otingocnI"         -- 15
 }
-PLACE_NOTES_BETWEEN_GENERAL_MENUS = {
+PLACE_NOTES_BETWEEN_MENUS = {       -- sub-menus within the "Place Notes (Between Notes)" menu
     -- "Place Notes By Snap",
     "Place Notes By Number"
 }
@@ -150,7 +150,7 @@ function draw()
         colorThemeIndex = 1,
         styleThemeIndex = 1,
         rgbPeriod = 60,
-        hideNoteInfoTooltip = false,
+        hideNoteInfoTooltip = false
     }
     getVariables("globalVars", globalVars)
     
@@ -168,11 +168,11 @@ function draw()
     chooseMenu(globalVars)
     local currentMenu = MENUS[globalVars.menuIndex]
     if currentMenu == "Plugin Info & Settings"      then pluginInfoMenu(globalVars) end
-    if currentMenu == "Place Notes (Between Notes)" then placeNotesBetweenGeneralMenu(globalVars) end
+    if currentMenu == "Place Notes (Between Notes)" then placeNotesBetweenMenu() end
     --if currentMenu == "Place Notes (Around Note)"   then end
     --if currentMenu == "Place Notes (From Scratch)"  then end
-    if currentMenu == "Edit Notes (General)"        then editNotesGeneralMenu(globalVars) end
-    if currentMenu == "Edit Notes (LNs)"            then editNotesLNsMenu(globalVars) end
+    if currentMenu == "Edit Notes (General)"        then editNotesGeneralMenu() end
+    if currentMenu == "Edit Notes (LNs)"            then editNotesLNsMenu() end
     state.IsWindowHovered = imgui.IsWindowHovered()
     imgui.End()
     
@@ -241,19 +241,14 @@ end
 -- Parameters
 --    globalVars : list of variables used globally across all menus [Table]
 function pluginAppearanceMenu(globalVars)
-    chooseStyleTheme(globalVars)
-    chooseColorTheme(globalVars)
-    globalVars.styleThemeIndex = getNewComboIndexOnKeyPress(keys.Z, globalVars.styleThemeIndex,
-                                                            STYLE_THEMES)
-    globalVars.colorThemeIndex = getNewComboIndexOnKeyPress(keys.X, globalVars.colorThemeIndex,
-                                                            COLOR_THEMES)
+    chooseStyleTheme(globalVars, keys.Z)
+    chooseColorTheme(globalVars, keys.X)
 end
 -- Creates the "Plugin Behavior Settings" menu
 -- Parameters
 --    globalVars : list of variables used globally across all menus [Table]
 function pluginBehaviorMenu(globalVars)
-    chooseNoteInfoTooltipVisibility(globalVars)
-    globalVars.hideNoteInfoTooltip = getNewBooleanOnKeyPress(keys.Z, globalVars.hideNoteInfoTooltip)
+    chooseNoteInfoTooltipVisibility(globalVars, keys.Z)
 end
 -- Creates the "Extra Goodies" menu
 -- Parameters
@@ -266,16 +261,14 @@ end
 ----------------------------------------------------------------------- Place Notes (Between Notes)
 
 -- Creates the "Place Notes (Between Notes)" menu
--- Parameters
---    globalVars : list of variables used globally across all menus [Table]
-function placeNotesBetweenGeneralMenu(globalVars)
+function placeNotesBetweenMenu()
     local menuVars = {
         subMenuIndex = 1
     }
     getVariables("placeNotesBetweenMenuVars", menuVars)
-    chooseSubMenu(menuVars, PLACE_NOTES_BETWEEN_GENERAL_MENUS)
+    chooseSubMenu(menuVars, PLACE_NOTES_BETWEEN_MENUS)
     saveVariables("placeNotesBetweenMenuVars", menuVars)
-    local currentMenu = PLACE_NOTES_BETWEEN_GENERAL_MENUS[menuVars.subMenuIndex]
+    local currentMenu = PLACE_NOTES_BETWEEN_MENUS[menuVars.subMenuIndex]
     -- if currentMenu == "Shift Notes Up/Down"    then placeNotesBetweenSnapMenu() end
     if currentMenu == "Place Notes By Number" then placeNotesBetweenNumberMenu() end
 end
@@ -304,9 +297,7 @@ end
 ------------------------------------------------------------------------------ Edit Notes (General)
 
 -- Creates the "Edit Notes (General)" menu
--- Parameters
---    globalVars : list of variables used globally across all menus [Table]
-function editNotesGeneralMenu(globalVars)
+function editNotesGeneralMenu()
     local menuVars = {
         subMenuIndex = 1
     }
@@ -342,8 +333,7 @@ function shiftNotesHorizontallyMenu()
         directionRight = false
     }
     getVariables("shiftHorzSettingVars", settingVars)
-    chooseDirection(settingVars)
-    settingVars.directionRight = getNewBooleanOnKeyPress(keys.Z, settingVars.directionRight)
+    chooseDirection(settingVars, keys.Z)
     saveVariables("shiftHorzSettingVars", settingVars)
     addSeparator()
     local buttonText = "Shift selected notes horizontally"
@@ -365,12 +355,10 @@ function switchNoteLanesMenu()
     displayOldLanesInNewLanes(settingVars)
     updateSelectedLaneIndexes(settingVars)
     addSeparator()
-    button("Randomize", HALF_BUTTON_SIZE, randomizeOldLanesInNewLanes, nil, settingVars)
-    executeFunctionOnKeyPress(keys.Z, true, randomizeOldLanesInNewLanes, nil, settingVars)
+    local buttonSize = HALF_BUTTON_SIZE
+    button("Randomize", buttonSize, keys.Z, true, randomizeOldLanesInNewLanes, nil, settingVars)
     imgui.SameLine(0, SAMELINE_SPACING)
-    button("Reset", HALF_BUTTON_SIZE, resetOldLanesInNewLanes, nil, settingVars)
-    executeFunctionOnKeyPress(keys.X, true, resetOldLanesInNewLanes, nil, settingVars)
-    
+    button("Reset", buttonSize, keys.X, true, resetOldLanesInNewLanes, nil, settingVars)
     saveVariables("switchLanesSettingVars", settingVars)
     addSeparator()
     local buttonText = "Switch lanes of selected notes"
@@ -398,20 +386,16 @@ function scaleNoteSpacingMenu()
     }
     getVariables(variablesListName, settingVars)
     showProjectedOutputWindow(settingVars)
-    chooseBehavior(settingVars)
-    settingVars.behaviorIndex = getNewComboIndexOnKeyPress(keys.Z, settingVars.behaviorIndex,
-                                                           BEHAVIORS)
-    chooseScaleType(settingVars)
-    settingVars.scaleTypeIndex = getNewComboIndexOnKeyPress(keys.X, settingVars.scaleTypeIndex,
-                                                            SCALE_TYPES)
+    chooseBehavior(settingVars, keys.Z)
+    chooseScaleType(settingVars, keys.X)
     chooseIntensity(settingVars)
     chooseMinLNLength(settingVars)
     local needDemoInfoUpdate = checkVariablesChanged(variablesListName, settingVars)
     if needDemoInfoUpdate then updateDemoInfo(settingVars) end
     saveVariables(variablesListName, settingVars)
     addSeparator()
-    local invalidIntensity = settingVars.intensity == 0
-    if invalidIntensity then imgui.Text(":jerry:") return end
+    local badIntensity = settingVars.intensity == 0
+    if badIntensity then imgui.Text(":jerry:") return end
     
     local buttonText = "Scale spacing between selected notes"
     local minimumNotes = 2
@@ -432,15 +416,10 @@ function shearLanePositionsMenu()
     }
     getVariables(variablesListName, settingVars)
     showProjectedOutputWindow(settingVars)
-    chooseDirection(settingVars)
-    settingVars.directionRight = getNewBooleanOnKeyPress(keys.Z, settingVars.directionRight)
+    chooseDirection(settingVars, keys.Z)
     addSeparator()
-    chooseBehavior(settingVars)
-    settingVars.behaviorIndex = getNewComboIndexOnKeyPress(keys.X, settingVars.behaviorIndex,
-                                                           BEHAVIORS)
-    chooseScaleType(settingVars)
-    settingVars.scaleTypeIndex = getNewComboIndexOnKeyPress(keys.C, settingVars.scaleTypeIndex,
-                                                            SCALE_TYPES)
+    chooseBehavior(settingVars, keys.X)
+    chooseScaleType(settingVars, keys.C)
     chooseIntensity(settingVars)
     chooseMilliseconds(settingVars)
     local needDemoInfoUpdate = checkVariablesChanged(variablesListName, settingVars)
@@ -455,9 +434,7 @@ end
 ---------------------------------------------------------------------------------- Edit Notes (LNs)
 
 -- Creates the "Edit Notes (LNs)" menu
--- Parameters
---    globalVars : list of variables used globally across all menus [Table]
-function editNotesLNsMenu(globalVars)
+function editNotesLNsMenu()
     local menuVars = {
         subMenuIndex = 1
     }
@@ -511,8 +488,7 @@ function adjustLNLengthsMenu()
         milliseconds = 42
     }
     getVariables("LNsToRiceSettingVars", settingVars)
-    chooseTargetLNSpot(settingVars)
-    settingVars.targetLNStart = getNewBooleanOnKeyPress(keys.Z, settingVars.targetLNStart)
+    chooseTargetLNSpot(settingVars, keys.Z)
     addSeparator()
     chooseMilliseconds(settingVars)
     saveVariables("LNsToRiceSettingVars", settingVars)
@@ -640,8 +616,9 @@ function scaleNoteSpacing(settingVars)
             local endPercentFromStart = endTimeFromStart / totalIntervalTime
             local newEndPercentFromStart = scalePercent(settingVars, endPercentFromStart)
             newEndTime = boundaryTimes.min + newEndPercentFromStart * totalIntervalTime
-            local newLNLength = newEndTime - newStartTime
-            if newLNLength < settingVars.minLNLength then newEndTime = 0 end
+            local isAcceptableEndTime = isAcceptableLNLength(newStartTime, newEndTime,
+                                                             settingVars.minLNLength)
+            if not isAcceptableEndTime then newEndTime = 0 end
         end
         addNoteToList(notesToAdd, note, newStartTime, nil, newEndTime, nil, nil)
     end
@@ -691,6 +668,8 @@ function shearLanePositions(settingVars)
     removeAndAddNotes(notesToRemove, notesToAdd)
 end
 -- Applies the full LN mod onto selected notes
+-- Parameters
+--    settingVars : list of variables used for the current menu [Table]
 function applyFullLN(settingVars)
     local totalNumLanes = map.GetKeyCount()
     local notesInLanes = {}
@@ -726,8 +705,9 @@ function convertLaneToFullLN(settingVars, notesToAdd, notesInSameLane)
         local timeGap = calculateLNGapTime(settingVars, currentNoteTime, nextNoteTime)
         
         local newEndTime = nextNoteTime - timeGap
-        local newEndTimeUnacceptable = (newEndTime - currentNoteTime) < settingVars.minLNLength
-        if newEndTimeUnacceptable then newEndTime = 0 end
+        local isAcceptableEndTime = isAcceptableLNLength(currentNoteTime, newEndTime,
+                                                         settingVars.minLNLength)
+        if not isAcceptableEndTime then newEndTime = 0 end
         addNoteToList(notesToAdd, currentNote, nil, nil, newEndTime, nil, nil)
     end
     local lastNote = notesInSameLane[#notesInSameLane]
@@ -803,8 +783,9 @@ function convertLaneToInverseLN(settingVars, notesToAdd, notesInSameLane)
         if isLastInversion and (not nextNoteIsLN) then timeGap = 0 end
         if timeGapNeeded then newEndTime = newEndTime - timeGap end
         
-        local newEndTimeUnacceptable = (newEndTime - newStartTime) < settingVars.minLNLength
-        if newEndTimeUnacceptable and (not currentNoteIsLN) then newEndTime = 0 end
+        local isAcceptableEndTime = isAcceptableLNLength(newStartTime, newEndTime,
+                                                         settingVars.minLNLength)
+        if not isAcceptableEndTime and (not currentNoteIsLN) then newEndTime = 0 end
         
         if not (newEndTimeUnacceptable and currentNoteIsLN) then
             addNoteToList(notesToAdd, currentNote, newStartTime, nil, newEndTime, nil, nil)
@@ -914,31 +895,9 @@ function changeSubMenuOnHotkeyPress(menuVars, subMenusList)
     if sKeyPressed then newSubMenuIndex = menuVars.subMenuIndex + 1 end
      menuVars.subMenuIndex = wrapToInterval(newSubMenuIndex, 1, #subMenusList)
 end
--- Executes a function if a key is pressed
--- Parameters
---    key         : key to be pressed [keys.~, from Quaver's MonoGame.Framework.Input.Keys enum]
---    requireAlt  : whether the Alt key is required to be held down [Boolean]
---    func        : function to execute once key is pressed [Function]
---    globalVars  : list of variables used globally across all menus [Table]
---    settingVars : list of variables used for the current menu [Table]
-function executeFunctionOnKeyPress(key, requireAlt, func, globalVars, settingVars)
-    local altKeyDown = utils.IsKeyDown(keys.LeftAlt) or
-                       utils.IsKeyDown(keys.RightAlt)
-    if requireAlt and (not altKeyDown) then return end
-    
-    if not utils.IsKeyPressed(key) then return end
-    
-    if globalVars and settingVars then func(globalVars, settingVars) return end
-    
-    if globalVars then func(globalVars) return end
-    
-    if settingVars then func(settingVars) return end
-    
-    func()
-end
 -- Returns the new combo index when ALT + a specific key is pressed [Int]
 -- Parameters
---    key        : key to be pressed [keys.~, from Quaver's MonoGame.Framework.Input.Keys enum]
+--    key        : key to change value [keys.~, from Quaver's MonoGame.Framework.Input.Keys enum]
 --    comboIndex : current index of the combo [Int]
 --    comboList  : list used by the combo [Table]
 function getNewComboIndexOnKeyPress(key, comboIndex, comboList)
@@ -953,7 +912,7 @@ function getNewComboIndexOnKeyPress(key, comboIndex, comboList)
 end
 -- Returns the opposite boolean when ALT + a specific key is pressed [Int]
 -- Parameters
---    key     : key to be pressed [keys.~, from Quaver's MonoGame.Framework.Input.Keys enum]
+--    key     : key to change value [keys.~, from Quaver's MonoGame.Framework.Input.Keys enum]
 --    boolean : [Boolean]
 function getNewBooleanOnKeyPress(key, boolean)
     local altKeyDown = utils.IsKeyDown(keys.LeftAlt) or
@@ -1256,6 +1215,15 @@ end
 -- Parameters
 --    note : [Quaver HitObject]
 function isLN(note) return note.EndTime ~= 0 end
+-- Returns whether or not an LN has an acceptable length [Boolean]
+-- Parameters
+--    startTime   : start time in milliseconds of the LN [Int]
+--    endTime     : end time in milliseconds of the LN [Int]
+--    minLNLength : lowest threshold for acceptable LN length [Int]
+function isAcceptableLNLength(startTime, endTime, minLNLength)
+    local lnLength = endTime - startTime
+    return lnLength >= minLNLength
+end
 -- Adds the given notes
 -- Parameters
 --    notesToAdd : list of notes to add [Table]
@@ -1281,11 +1249,18 @@ end
 -- Parameters
 --    text        : text on the button [String]
 --    size        : dimensions of the button [Table]
+--    key         : key for button [keys.~, from Quaver's MonoGame.Framework.Input.Keys enum]
+--    altRequired : whether or not the key for the button also needs Alt to be held down [Boolean]
 --    func        : function to execute once button is pressed [Function]
 --    globalVars  : list of variables used globally across all menus [Table]
 --    settingVars : list of variables used for the current menu [Table]
-function button(text, size, func, globalVars, settingVars)
-    if not imgui.Button(text, size) then return end
+function button(text, size, key, altRequired, func, globalVars, settingVars)
+    local altKeyDown = utils.IsKeyDown(keys.LeftAlt) or
+                       utils.IsKeyDown(keys.RightAlt)
+    local keyPressed = utils.IsKeyPressed(key)
+    local buttonNotClicked = not imgui.Button(text, size)
+    local keysNotPressed = not keyPressed or (altRequired and (not altKeyDown))
+    if buttonNotClicked and keysNotPressed then return end
     if globalVars and settingVars then func(globalVars, settingVars) return end
     if globalVars then func(globalVars) return end
     if settingVars then func(settingVars) return end
@@ -1322,9 +1297,8 @@ function simpleActionMenu(buttonText, minimumNotes, actionfunc, globalVars, sett
     local infoText = table.concat({"Select ", minimumNotes, " or more notes"})
     if not enoughSelectedNotes then imgui.Text(infoText) return end
     
-    button(buttonText, ACTION_BUTTON_SIZE, actionfunc, globalVars, settingVars)
+    button(buttonText, ACTION_BUTTON_SIZE, keys.T, false, actionfunc, globalVars, settingVars)
     tooltip("Press ' T ' on your keyboard to do the same thing as this button")
-    executeFunctionOnKeyPress(keys.T, false, actionfunc, globalVars, settingVars)
 end
 -- Returns whether or not a tooltip is already active [Boolean]
 function isTooltipAlreadyActive() return state.GetValue("uiTooltipActive") end
@@ -1508,14 +1482,20 @@ end
 -- Lets you choose the behavior of something (speed up or slow down)
 -- Parameters
 --    settingVars : list of variables used for the current menu [Table]
-function chooseBehavior(settingVars)
+--    key         : key to change value [keys.~, from Quaver's MonoGame.Framework.Input.Keys enum]
+function chooseBehavior(settingVars, key)
     settingVars.behaviorIndex = combo("Behavior", BEHAVIORS, settingVars.behaviorIndex)
+    settingVars.behaviorIndex = getNewComboIndexOnKeyPress(key, settingVars.behaviorIndex,
+                                                           BEHAVIORS)
 end
 -- Lets you choose the color theme of the plugin
 -- Parameters
 --    globalVars : list of variables used globally across all menus [Table]
-function chooseColorTheme(globalVars)
+--    key        : key to change value [keys.~, from Quaver's MonoGame.Framework.Input.Keys enum]
+function chooseColorTheme(globalVars, key)
     globalVars.colorThemeIndex = combo("Color Theme", COLOR_THEMES, globalVars.colorThemeIndex)
+    globalVars.colorThemeIndex = getNewComboIndexOnKeyPress(key, globalVars.colorThemeIndex,
+                                                            COLOR_THEMES)
     local currentTheme = COLOR_THEMES[globalVars.colorThemeIndex]
     local isRGBColorTheme = currentTheme == "Tobi's RGB Glass" or
                             currentTheme == "Glass + RGB" or  
@@ -1544,7 +1524,8 @@ end
 -- Lets you choose a direction
 -- Parameters
 --    settingVars : list of variables used for the current menu [Table]
-function chooseDirection(settingVars)
+--    key         : key to change value [keys.~, from Quaver's MonoGame.Framework.Input.Keys enum]
+function chooseDirection(settingVars, key)
     imgui.AlignTextToFramePadding()
     imgui.Text("Direction:")
     imgui.SameLine(0, RADIO_BUTTON_SPACING)
@@ -1555,6 +1536,7 @@ function chooseDirection(settingVars)
     if imgui.RadioButton("Right", settingVars.directionRight) then
         settingVars.directionRight = true
     end
+    settingVars.directionRight = getNewBooleanOnKeyPress(key, settingVars.directionRight)
 end
 -- Lets you choose the intensity of something
 -- Parameters
@@ -1605,10 +1587,12 @@ end
 -- Lets you choose the note info tooltip visibility
 -- Parameters
 --    globalVars : list of variables used globally across all menus [Table]
-function chooseNoteInfoTooltipVisibility(globalVars)
+--    key        : key to change value [keys.~, from Quaver's MonoGame.Framework.Input.Keys enum]
+function chooseNoteInfoTooltipVisibility(globalVars, key)
     local label = "Hide note info tooltip"
     _, globalVars.hideNoteInfoTooltip = imgui.Checkbox(label, globalVars.hideNoteInfoTooltip)
     helpMarker("Selecting a single note shows its info in a tooltip")
+    globalVars.hideNoteInfoTooltip = getNewBooleanOnKeyPress(key, globalVars.hideNoteInfoTooltip)
 end
 -- Lets you choose the length in seconds of one RGB color cycle
 -- Parameters
@@ -1622,14 +1606,20 @@ end
 -- Lets you choose how to scale note spacing
 -- Parameters
 --    settingVars : list of variables used for the current menu [Table]
-function chooseScaleType(settingVars)
+--    key         : key to change value [keys.~, from Quaver's MonoGame.Framework.Input.Keys enum]
+function chooseScaleType(settingVars, key)
     settingVars.scaleTypeIndex = combo("Scale Type", SCALE_TYPES, settingVars.scaleTypeIndex)
+    settingVars.scaleTypeIndex = getNewComboIndexOnKeyPress(key, settingVars.scaleTypeIndex,
+                                                            SCALE_TYPES)
 end
 -- Lets you choose the style theme of the plugin
 -- Parameters
 --    globalVars : list of variables used globally across all menus [Table]
-function chooseStyleTheme(globalVars)
+--    key        : key to change value [keys.~, from Quaver's MonoGame.Framework.Input.Keys enum]
+function chooseStyleTheme(globalVars, key)
     globalVars.styleThemeIndex = combo("Style Theme", STYLE_THEMES, globalVars.styleThemeIndex)
+    globalVars.styleThemeIndex = getNewComboIndexOnKeyPress(key, globalVars.styleThemeIndex,
+                                                            STYLE_THEMES)
 end
 -- Lets you choose the sub-menu
 -- Parameters
@@ -1645,7 +1635,8 @@ end
 -- Lets you choose the target LN spot to change
 -- Parameters
 --    settingVars : list of variables used for the current menu [Table]
-function chooseTargetLNSpot(settingVars)
+--    key         : key to change value [keys.~, from Quaver's MonoGame.Framework.Input.Keys enum]
+function chooseTargetLNSpot(settingVars, key)
     imgui.AlignTextToFramePadding()
     imgui.Text("Target:")
     imgui.SameLine(0, RADIO_BUTTON_SPACING)
@@ -1656,6 +1647,7 @@ function chooseTargetLNSpot(settingVars)
     if imgui.RadioButton("LN End", not settingVars.targetLNStart) then
         settingVars.targetLNStart = false
     end
+    settingVars.targetLNStart = getNewBooleanOnKeyPress(key, settingVars.targetLNStart)
 end
 
 ---------------------------------------------------------------------------------------------------
