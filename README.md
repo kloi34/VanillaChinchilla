@@ -5,13 +5,10 @@
 This is a plugin for [Quaver](https://github.com/Quaver), the ultimate community-driven and open-source competitive rhythm game.
 The plugin provides various tools to place and edit notes quickly and efficiently when making maps in the editor.
 
-Here's all the planned and already implemented features of the plugin so far:
+Here's all the features of the plugin so far:
 
 ### Place Notes (Between Notes)
 - Place Notes By Number
-
-### Place Notes (Around Note)
-COMING SOON
 
 ### Edit Notes (General)
 - Shift Notes Up/Down
@@ -19,7 +16,7 @@ COMING SOON
 - Switch Note Lanes
 - Flip Notes Vertically
 - Scale Note Spacing
-- Shear Note Positions
+- Shear Lane Positions
 
 ### Edit Notes (LNs)
 - Extend LNs
