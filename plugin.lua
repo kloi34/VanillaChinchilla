@@ -771,23 +771,24 @@ function convertLaneToInverseLN(settingVars, notesToAdd, notesInSameLane)
         local nextNote = notesInSameLane[i + 1]
         local nextNoteTime = nextNote.StartTime
         
-        local newStartTime = currentNoteTime
-        local newEndTime = nextNoteTime
         local currentNoteIsLN = isLN(currentNote)
+        local newStartTime = currentNoteTime
+        if currentNoteIsLN then newStartTime = currentNote.EndTime end
+        
+        local newEndTime = nextNoteTime
         local nextNoteIsLN = isLN(nextNote)
         local isLastInversion = (i == #notesInSameLane - 1)
-        local timeGapNeeded = not nextNoteIsLN or (isLastInversion and nextNoteIsLN)
         local timeGap = calculateLNGapTime(settingVars, currentNoteTime, nextNoteTime)
-        
-        if currentNoteIsLN then newStartTime = currentNote.EndTime end
         if isLastInversion and (not nextNoteIsLN) then timeGap = 0 end
+        
+        local timeGapNeeded = not nextNoteIsLN or (isLastInversion and nextNoteIsLN)
         if timeGapNeeded then newEndTime = newEndTime - timeGap end
         
         local isAcceptableEndTime = isAcceptableLNLength(newStartTime, newEndTime,
                                                          settingVars.minLNLength)
         if not isAcceptableEndTime and (not currentNoteIsLN) then newEndTime = 0 end
         
-        if not (newEndTimeUnacceptable and currentNoteIsLN) then
+        if not (isAcceptableEndTime and currentNoteIsLN) then
             addNoteToList(notesToAdd, currentNote, newStartTime, nil, newEndTime, nil, nil)
         end
     end
