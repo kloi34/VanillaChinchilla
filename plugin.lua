@@ -727,7 +727,7 @@ function applyInverseLN(settingVars)
     end
     for lane = 1, totalNumLanes do
         local notesInCurrentLane = notesInLanes[lane]
-        convertLaneToFullLN(settingVars, notesToAdd, notesInCurrentLane)
+        convertLaneToInverseLN(settingVars, notesToAdd, notesInCurrentLane)
     end
     removeAndAddNotes(notesToRemove, notesToAdd)
 end
@@ -782,11 +782,11 @@ function convertLaneToInverseLN(settingVars, notesToAdd, notesInSameLane)
         local timeGapNeeded = not nextNoteIsLN or (isLastInversion and nextNoteIsLN)
         if timeGapNeeded then newEndTime = newEndTime - timeGap end
         
-        local isAcceptableEndTime = isAcceptableLNLength(newStartTime, newEndTime,
-                                                         settingVars.minLNLength)
-        if not isAcceptableEndTime and (not currentNoteIsLN) then newEndTime = 0 end
+        local isUnacceptableEndTime = not isAcceptableLNLength(newStartTime, newEndTime,
+                                                               settingVars.minLNLength)
+        if isUnacceptableEndTime and (not currentNoteIsLN) then newEndTime = 0 end
         
-        if not (isAcceptableEndTime and currentNoteIsLN) then
+        if not (isUnacceptableEndTime and currentNoteIsLN) then
             addNoteToList(notesToAdd, currentNote, newStartTime, nil, newEndTime, nil, nil)
         end
     end
