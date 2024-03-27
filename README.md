@@ -33,4 +33,5 @@ You can find many (but maybe not all) of those plugins created by them on GitHub
 
 ## Related Links
 * [Quaver Plugin Guide](https://github.com/IceDynamix/QuaverPluginGuide/blob/master/quaver_plugin_guide.md) by IceDynamix
+* [AFFINE](https://github.com/ESV-Sweetplum/AFFINE) by ESV-Sweetplum
 * [amoguSV](https://github.com/kloi34/amoguSV) by kloi34
